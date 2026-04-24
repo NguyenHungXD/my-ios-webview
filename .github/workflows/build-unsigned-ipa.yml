@@ -24,13 +24,13 @@ jobs:
       - name: Build unsigned iOS app (Xcode)
         run: |
           cd ios
-          xcodebuild -workspace ios.xcworkspace -scheme ios -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGNING_IDENTITY="" -derivedDataPath build
+          xcodebuild -workspace IOS.xcworkspace -scheme IOS -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGNING_IDENTITY="" -derivedDataPath build
 
       - name: Package into IPA
         run: |
           cd ios/build/Build/Products/Release-iphoneos
           mkdir Payload
-          cp -r ios.app Payload/
+          cp -r IOS.app Payload/
           zip -r ios.ipa Payload
 
       - name: Upload IPA Artifact
