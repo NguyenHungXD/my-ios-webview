@@ -16,7 +16,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.nguyenhungxd95.IOS",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Cho phép ứng dụng lấy vị trí của bạn để hiển thị chính xác Thời Tiết tại khu vực bạn đang đứng."
       }
     },
     "android": {
