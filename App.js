@@ -10,6 +10,9 @@ import * as Haptics from 'expo-haptics';
 import * as Network from 'expo-network';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import CalendarScreen from './src/screens/CalendarScreen';
+import WeatherScreen from './src/screens/WeatherScreen';
+
 const Drawer = createDrawerNavigator();
 const THEME_COLOR = '#2E8B57'; // Màu xanh lá cây chuyên nghiệp
 
@@ -237,7 +240,7 @@ export default function App() {
       <NavigationContainer>
         <StatusBar style="light" backgroundColor={THEME_COLOR} />
         <Drawer.Navigator
-          initialRouteName={menuItems.length > 0 ? menuItems[0].name : "Quản lý Trang"}
+          initialRouteName="Lịch Vạn Niên"
           screenOptions={{
             swipeEnabled: false, // TẮT VUỐT MÉP Ở GIAO DIỆN DRAWER ĐỂ TRÁNH XUNG ĐỘT
             headerStyle: { backgroundColor: THEME_COLOR },
@@ -246,6 +249,24 @@ export default function App() {
             drawerActiveTintColor: THEME_COLOR,
           }}
         >
+          <Drawer.Screen 
+            name="Lịch Vạn Niên" 
+            component={CalendarScreen} 
+            options={{
+              drawerIcon: ({ color }) => (
+                <Ionicons name="calendar-outline" size={22} color={color} />
+              ),
+            }}
+          />
+          <Drawer.Screen 
+            name="Thời Tiết" 
+            component={WeatherScreen} 
+            options={{
+              drawerIcon: ({ color }) => (
+                <Ionicons name="partly-sunny-outline" size={22} color={color} />
+              ),
+            }}
+          />
           {menuItems.map((item) => (
             <Drawer.Screen 
               key={item.id} 
