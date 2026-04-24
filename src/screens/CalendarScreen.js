@@ -33,30 +33,40 @@ export default function CalendarScreen() {
       <Calendar
         onDayPress={handleDayPress}
         dayComponent={({date, state}) => {
+          if (!date) return <View style={styles.dayContainer} />;
+          
           let lunar = [1, 1, 1];
           try {
-             lunar = amlich.convertSolar2Lunar(date.day, date.month, date.year, 7);
-          } catch(e) { console.log(e); }
+             if (date.day && date.month && date.year) {
+               lunar = amlich.convertSolar2Lunar(date.day, date.month, date.year, 7);
+             }
+          } catch(e) { console.log('Lunar Error:', e); }
+          
           const isSelected = date.dateString === selected;
           return (
             <TouchableOpacity 
               onPress={() => handleDayPress(date)} 
               style={[styles.dayContainer, isSelected && styles.selectedDay]}
+              activeOpacity={0.7}
             >
               <Text style={{
                 textAlign: 'center', 
-                color: state === 'disabled' ? 'gray' : (isSelected ? 'white' : 'black'),
-                fontWeight: isSelected ? 'bold' : 'normal'
+                color: state === 'disabled' ? '#ccc' : (isSelected ? 'white' : '#333'),
+                fontWeight: isSelected ? 'bold' : 'normal',
+                fontSize: 16
               }}>
                 {date.day}
               </Text>
-              <Text style={{
-                fontSize: 10, 
-                color: isSelected ? '#eee' : 'red',
-                marginTop: 2
-              }}>
-                {lunar[0] === 1 ? `${lunar[0]}/${lunar[1]}` : lunar[0]}
-              </Text>
+              {state !== 'disabled' && (
+                <Text style={{
+                  fontSize: 10, 
+                  color: isSelected ? '#eee' : '#FF3B30',
+                  marginTop: 2,
+                  fontWeight: '500'
+                }}>
+                  {lunar[0] === 1 ? `${lunar[0]}/${lunar[1]}` : lunar[0]}
+                </Text>
+              )}
             </TouchableOpacity>
           );
         }}
