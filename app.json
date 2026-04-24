@@ -12,12 +12,19 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Cho phép ứng dụng lấy vị trí của bạn để hiển thị chính xác Thời Tiết tại khu vực bạn đang đứng."
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nguyenhungxd95.IOS",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "Cho phép ứng dụng lấy vị trí của bạn để hiển thị chính xác Thời Tiết tại khu vực bạn đang đứng.",
         "NSPhotoLibraryUsageDescription": "Cho phép ứng dụng truy cập thư viện ảnh để bạn có thể tải hình ảnh lên hệ thống.",
         "NSCameraUsageDescription": "Cho phép ứng dụng sử dụng máy ảnh để chụp và tải ảnh lên hệ thống."
       }
