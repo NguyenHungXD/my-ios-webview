@@ -12,6 +12,7 @@ import CalendarScreen from './src/screens/CalendarScreen';
 import WeatherScreen from './src/screens/WeatherScreen';
 import WebViewScreen from './src/screens/WebViewScreen';
 import ManagePagesScreen from './src/screens/ManagePagesScreen';
+import TaskScreen from './src/screens/TaskScreen';
 
 // --- BỘ BẮT LỖI TOÀN CỤC (GLOBAL ERROR HANDLER) ---
 if (!__DEV__) {
@@ -127,6 +128,13 @@ export default function App() {
               component={WeatherScreen} 
               options={{
                 tabBarIcon: ({ color }) => <Ionicons name="partly-sunny-outline" size={24} color={color} />,
+              }}
+            />
+            <Tab.Screen 
+              name="Công Việc" 
+              component={TaskScreen} 
+              options={{
+                tabBarIcon: ({ color }) => <Ionicons name="clipboard-outline" size={24} color={color} />,
               }}
             />
             <Tab.Screen 
