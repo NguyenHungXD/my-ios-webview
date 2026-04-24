@@ -100,7 +100,7 @@ export default function App() {
         <NavigationContainer>
           <StatusBar style="light" backgroundColor={THEME_COLOR} />
           <Tab.Navigator
-            initialRouteName="Duyệt Web"
+            initialRouteName="Thời Tiết"
             screenOptions={{
               headerStyle: { backgroundColor: THEME_COLOR },
               headerTintColor: '#fff',
@@ -109,20 +109,6 @@ export default function App() {
               tabBarInactiveTintColor: '#888',
             }}
           >
-            <Tab.Screen 
-              name="Duyệt Web" 
-              component={WebViewScreen} 
-              options={{
-                tabBarIcon: ({ color }) => <Ionicons name="globe-outline" size={24} color={color} />,
-              }}
-            />
-            <Tab.Screen 
-              name="Lịch Vạn Niên" 
-              component={CalendarScreen} 
-              options={{
-                tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={24} color={color} />,
-              }}
-            />
             <Tab.Screen 
               name="Thời Tiết" 
               component={WeatherScreen} 
@@ -135,6 +121,20 @@ export default function App() {
               component={TaskScreen} 
               options={{
                 tabBarIcon: ({ color }) => <Ionicons name="clipboard-outline" size={24} color={color} />,
+              }}
+            />
+            <Tab.Screen 
+              name="Duyệt Web" 
+              component={WebViewScreen} 
+              options={{
+                tabBarIcon: ({ color }) => <Ionicons name="globe-outline" size={24} color={color} />,
+              }}
+            />
+            <Tab.Screen 
+              name="Lịch Vạn Niên" 
+              component={CalendarScreen} 
+              options={{
+                tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={24} color={color} />,
               }}
             />
             <Tab.Screen 

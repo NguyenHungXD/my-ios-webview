@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_KEY = 'AIzaSyDKff6_TgvUceFkTbbt7rOn6Q9Xszrk554';
+const API_KEY = 'AIzaSyB4weed8y6JTiLcUG-8Adz2CJqC-SKMUjE';
 const SPREADSHEET_ID = '1Od2c46Msy7FraALvf4YWyvRgfHxhfBHpGr0djUQdnq8';
 const RANGE = 'Abc!A:B';
 
