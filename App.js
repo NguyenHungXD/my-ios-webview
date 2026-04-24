@@ -1,35 +1,84 @@
+import 'react-native-gesture-handler';
 import React from 'react';
+import { StyleSheet, View, ActivityIndicator, Image } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, SafeAreaView, Platform, View, ActivityIndicator, Image } from 'react-native';
 import { WebView } from 'react-native-webview';
-import Constants from 'expo-constants';
+import { NavigationContainer } from '@react-navigation/native';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function App() {
-  const LoadingIndicatorView = () => {
-    return (
-      <View style={styles.loadingContainer}>
-        <Image 
-          source={require('./assets/Logo.png')} 
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <ActivityIndicator color="#007AFF" size="large" />
-      </View>
-    );
-  };
+const Drawer = createDrawerNavigator();
 
+// === TÙY BIẾN DANH SÁCH TRANG WEB TẠI ĐÂY ===
+// Bạn có thể thêm, sửa, xóa các dòng bên dưới. 
+// Tham khảo icon tại: https://icons.expo.fyi/
+const MENU_ITEMS = [
+  { name: 'Trang Chủ', url: 'https://thanhhungqs.xyz/manager/index.php', icon: 'home-outline' },
+  { name: 'Công Cụ', url: 'https://google.com', icon: 'construct-outline' },
+  { name: 'Tin Tức', url: 'https://vnexpress.net', icon: 'newspaper-outline' },
+];
+
+const THEME_COLOR = '#2E8B57'; // Màu xanh lá cây (SeaGreen) chuyên nghiệp
+
+const LoadingIndicatorView = () => (
+  <View style={styles.loadingContainer}>
+    <Image 
+      source={require('./assets/Logo.png')} 
+      style={styles.logo}
+      resizeMode="contain"
+    />
+    <ActivityIndicator color={THEME_COLOR} size="large" />
+  </View>
+);
+
+const WebViewScreen = ({ route }) => {
+  const { url } = route.params;
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <WebView 
-        source={{ uri: 'https://thanhhungqs.xyz/manager/index.php' }} 
+        source={{ uri: url }} 
         style={styles.webview}
         startInLoadingState={true}
         renderLoading={LoadingIndicatorView}
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
       />
-      <StatusBar style="dark" />
-    </SafeAreaView>
+    </View>
+  );
+};
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <StatusBar style="light" backgroundColor={THEME_COLOR} />
+      <Drawer.Navigator
+        initialRouteName={MENU_ITEMS[0].name}
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: THEME_COLOR,
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+          drawerActiveTintColor: THEME_COLOR,
+        }}
+      >
+        {MENU_ITEMS.map((item, index) => (
+          <Drawer.Screen 
+            key={index} 
+            name={item.name} 
+            component={WebViewScreen} 
+            initialParams={{ url: item.url }}
+            options={{
+              drawerIcon: ({ color }) => (
+                <Ionicons name={item.icon} size={22} color={color} />
+              ),
+            }}
+          />
+        ))}
+      </Drawer.Navigator>
+    </NavigationContainer>
   );
 }
 
@@ -37,7 +86,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
-    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight : 0,
   },
   webview: {
     flex: 1,
