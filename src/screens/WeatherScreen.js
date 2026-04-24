@@ -2,14 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
 
 const THEME_COLOR = '#2E8B57';
 
 export default function WeatherScreen() {
+  const isFocused = useIsFocused();
   const [weather, setWeather] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   
   useEffect(() => {
+    if (!isFocused) return;
+    if (weather) return; // Đã có data thì không load lại
+
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
