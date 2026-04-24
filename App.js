@@ -1,10 +1,9 @@
-import 'react-native-gesture-handler';
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Linking, Image, TextInput, FlatList, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { WebView } from 'react-native-webview';
 import { NavigationContainer } from '@react-navigation/native';
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Network from 'expo-network';
@@ -25,7 +24,7 @@ if (!__DEV__) {
   });
 }
 
-const Drawer = createDrawerNavigator();
+const Tab = createBottomTabNavigator();
 const THEME_COLOR = '#2E8B57'; // Màu xanh lá cây chuyên nghiệp
 
 const DEFAULT_MENU = [
@@ -251,57 +250,56 @@ export default function App() {
     <MenuContext.Provider value={{ menuItems, setMenuItems }}>
       <NavigationContainer>
         <StatusBar style="light" backgroundColor={THEME_COLOR} />
-        <Drawer.Navigator
+        <Tab.Navigator
           initialRouteName="Lịch Vạn Niên"
           screenOptions={{
-            swipeEnabled: false, // TẮT VUỐT MÉP Ở GIAO DIỆN DRAWER ĐỂ TRÁNH XUNG ĐỘT
             headerStyle: { backgroundColor: THEME_COLOR },
             headerTintColor: '#fff',
             headerTitleStyle: { fontWeight: 'bold' },
-            drawerActiveTintColor: THEME_COLOR,
+            tabBarActiveTintColor: THEME_COLOR,
           }}
         >
-          <Drawer.Screen 
+          <Tab.Screen 
             name="Lịch Vạn Niên" 
             component={CalendarScreen} 
             options={{
-              drawerIcon: ({ color }) => (
-                <Ionicons name="calendar-outline" size={22} color={color} />
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="calendar-outline" size={24} color={color} />
               ),
             }}
           />
-          <Drawer.Screen 
+          <Tab.Screen 
             name="Thời Tiết" 
             component={WeatherScreen} 
             options={{
-              drawerIcon: ({ color }) => (
-                <Ionicons name="partly-sunny-outline" size={22} color={color} />
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="partly-sunny-outline" size={24} color={color} />
               ),
             }}
           />
           {menuItems.map((item) => (
-            <Drawer.Screen 
+            <Tab.Screen 
               key={item.id} 
               name={item.name} 
               component={WebViewScreen} 
               initialParams={{ url: item.url }}
               options={{
-                drawerIcon: ({ color }) => (
-                  <Ionicons name={item.icon} size={22} color={color} />
+                tabBarIcon: ({ color }) => (
+                  <Ionicons name={item.icon} size={24} color={color} />
                 ),
               }}
             />
           ))}
-          <Drawer.Screen 
-            name="Quản lý Trang" 
+          <Tab.Screen 
+            name="Quản lý" 
             component={ManagePagesScreen} 
             options={{
-              drawerIcon: ({ color }) => (
-                <Ionicons name="settings-outline" size={22} color={color} />
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="settings-outline" size={24} color={color} />
               ),
             }}
           />
-        </Drawer.Navigator>
+        </Tab.Navigator>
       </NavigationContainer>
     </MenuContext.Provider>
   );
