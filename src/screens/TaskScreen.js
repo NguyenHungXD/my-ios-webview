@@ -40,13 +40,12 @@ export default function TaskScreen() {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGE}?key=${API_KEY}`;
+      // Dùng endpoint tải CSV trực tiếp để bỏ qua giới hạn API Key/CORS
+      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Abc`;
       const response = await fetch(url);
-      const data = await response.json();
+      const text = await response.text();
 
-      if (data.error) throw new Error(data.error.message);
-
-      const rows = data.values || [];
+      const lines = text.split('\n');
       const parsedTasks = [];
 
       const today = new Date();
@@ -54,9 +53,13 @@ export default function TaskScreen() {
       const limitDate = new Date();
       limitDate.setDate(today.getDate() + 7);
 
-      for (let i = 1; i < rows.length; i++) { // Skip header
-        const dateStr = rows[i][0];
-        const jobStr = rows[i][1];
+      for (let i = 1; i < lines.length; i++) { // Bỏ qua header
+        if (!lines[i].trim()) continue;
+        // Parse CSV đơn giản (tách dấu phẩy, bỏ dấu ngoặc kép)
+        const row = lines[i].split('","').map(v => v.replace(/^"|"$/g, ''));
+        
+        const dateStr = row[0];
+        const jobStr = row[1];
         if (!dateStr || !jobStr) continue;
 
         const parts = dateStr.split(/[-/]/);

@@ -26,6 +26,10 @@ export default function WeatherScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [city, setCity] = useState('VỊ TRÍ CỦA BẠN');
 
+  useEffect(() => {
+    fetchWeather();
+  }, []);
+
   const getDayName = (dateStr) => {
     const d = new Date(dateStr);
     const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
@@ -108,9 +112,9 @@ export default function WeatherScreen() {
       <View style={[styles.container, { justifyContent: 'center' }]}>
         <View style={styles.promptBox}>
           <Ionicons name="cloud-download-outline" size={60} color={THEME.textLight} />
-          <Text style={styles.promptTitle}>DỮ LIỆU THỜI TIẾT</Text>
+          <Text style={styles.promptTitle}>KHÔNG LẤY ĐƯỢC DỮ LIỆU</Text>
           <TouchableOpacity style={styles.fetchButton} onPress={fetchWeather}>
-            <Text style={styles.fetchButtonText}>CẬP NHẬT NGAY</Text>
+            <Text style={styles.fetchButtonText}>THỬ LẠI</Text>
           </TouchableOpacity>
           {errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
         </View>
@@ -120,8 +124,9 @@ export default function WeatherScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center' }]}>
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={THEME.accentBlue} />
+        <Text style={{color: THEME.textSub, marginTop: 15, fontStyle: 'italic'}}>Đang kết nối vệ tinh...</Text>
       </View>
     );
   }
