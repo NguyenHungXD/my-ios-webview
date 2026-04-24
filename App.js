@@ -13,6 +13,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import CalendarScreen from './src/screens/CalendarScreen';
 import WeatherScreen from './src/screens/WeatherScreen';
 
+// --- BỘ BẮT LỖI TOÀN CỤC (GLOBAL ERROR HANDLER) ---
+if (!__DEV__) {
+  const defaultErrorHandler = global.ErrorUtils.getGlobalHandler();
+  global.ErrorUtils.setGlobalHandler((error, isFatal) => {
+    Alert.alert(
+      'Lỗi nghiêm trọng (JS Crash)',
+      `Mã lỗi: ${error.message}\nBạn hãy chụp màn hình này gửi lại cho AI.`,
+      [{ text: 'OK' }]
+    );
+  });
+}
+
 const Drawer = createDrawerNavigator();
 const THEME_COLOR = '#2E8B57'; // Màu xanh lá cây chuyên nghiệp
 

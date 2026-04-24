@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { convertSolar2Lunar } from 'amlich';
+const amlich = require('amlich');
 import * as Haptics from 'expo-haptics';
 
 LocaleConfig.locales['vn'] = {
@@ -19,8 +19,12 @@ export default function CalendarScreen() {
 
   const handleDayPress = (date) => {
     setSelected(date.dateString);
-    const lunar = convertSolar2Lunar(date.day, date.month, date.year, 7);
-    setLunarDetail(`Ngày Âm: ${lunar[0]}/${lunar[1]}/${lunar[2]}`);
+    try {
+      const lunar = amlich.convertSolar2Lunar(date.day, date.month, date.year, 7);
+      setLunarDetail(`Ngày Âm: ${lunar[0]}/${lunar[1]}/${lunar[2]}`);
+    } catch(e) {
+      setLunarDetail(`Lỗi Âm lịch: ${e.message}`);
+    }
     Haptics.selectionAsync();
   };
 
@@ -29,7 +33,10 @@ export default function CalendarScreen() {
       <Calendar
         onDayPress={handleDayPress}
         dayComponent={({date, state}) => {
-          const lunar = convertSolar2Lunar(date.day, date.month, date.year, 7);
+          let lunar = [1, 1, 1];
+          try {
+             lunar = amlich.convertSolar2Lunar(date.day, date.month, date.year, 7);
+          } catch(e) { console.log(e); }
           const isSelected = date.dateString === selected;
           return (
             <TouchableOpacity 
