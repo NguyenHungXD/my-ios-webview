@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, Alert, Animated } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, Alert, Animated, LayoutAnimation, UIManager, TouchableWithoutFeedback } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -25,6 +30,11 @@ const AnimatedTaskItem = ({ t, index, isLast }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => { Animated.spring(scaleAnim, { toValue: 0.95, useNativeDriver: true }).start(); };
+  const handlePressOut = () => { Animated.spring(scaleAnim, { toValue: 1, friction: 3, tension: 40, useNativeDriver: true }).start(); };
 
   const [isLive, setIsLive] = useState(false);
 
@@ -118,21 +128,24 @@ const AnimatedTaskItem = ({ t, index, isLast }) => {
       </View>
 
       {/* Thẻ Công Việc */}
-      <View style={[styles.taskCard, { borderLeftColor: isLive ? THEME.pulseColor : statusColor }, isLive && styles.liveCard]}>
-        <View style={styles.taskCardHeader}>
-          <View style={styles.timeWrap}>
-            <Ionicons name="alarm-outline" size={14} color={THEME.textSub} style={{marginRight: 4}}/>
-            <Text style={[styles.timeText, isLive && {color: THEME.pulseColor, fontWeight: 'bold'}]}>
-              {t.fromTime} - {t.toTime}
-            </Text>
+      <TouchableWithoutFeedback onPressIn={handlePressIn} onPressOut={handlePressOut}>
+        <Animated.View style={[styles.taskCard, { borderLeftColor: isLive ? THEME.pulseColor : statusColor, transform: [{scale: scaleAnim}] }, isLive && styles.liveCard]}>
+          <LinearGradient colors={['rgba(255,255,255,0.05)', 'rgba(0,0,0,0.1)']} style={StyleSheet.absoluteFillObject} borderRadius={15} />
+          <View style={styles.taskCardHeader}>
+            <View style={styles.timeWrap}>
+              <Ionicons name="alarm-outline" size={14} color={THEME.textSub} style={{marginRight: 4}}/>
+              <Text style={[styles.timeText, isLive && {color: THEME.pulseColor, fontWeight: 'bold'}]}>
+                {t.fromTime} - {t.toTime}
+              </Text>
+            </View>
+            <View style={[styles.statusBadge, {backgroundColor: statusColor + '20'}]}>
+              <Ionicons name={getStatusIcon(t.status)} size={12} color={statusColor} style={{marginRight: 4}}/>
+              <Text style={[styles.statusText, {color: statusColor}]}>{t.status}</Text>
+            </View>
           </View>
-          <View style={[styles.statusBadge, {backgroundColor: statusColor + '20'}]}>
-            <Ionicons name={getStatusIcon(t.status)} size={12} color={statusColor} style={{marginRight: 4}}/>
-            <Text style={[styles.statusText, {color: statusColor}]}>{t.status}</Text>
-          </View>
-        </View>
-        <Text style={styles.taskName}>{t.job}</Text>
-      </View>
+          <Text style={styles.taskName}>{t.job}</Text>
+        </Animated.View>
+      </TouchableWithoutFeedback>
     </Animated.View>
   );
 };
@@ -288,7 +301,7 @@ export default function TaskScreen() {
           </View>
         </View>
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => setShowAddForm(!showAddForm)}>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setShowAddForm(!showAddForm); }}>
             <Ionicons name={showAddForm ? "close" : "add"} size={22} color={THEME.textLight} />
           </TouchableOpacity>
           <TouchableOpacity style={[styles.iconBtn, {marginLeft: 10}]} onPress={fetchTasks}>

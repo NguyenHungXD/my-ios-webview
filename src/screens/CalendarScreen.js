@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput, Alert, Platform, Animated } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -129,6 +131,8 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [calendarGrid, setCalendarGrid] = useState([]);
   const [detailInfo, setDetailInfo] = useState(null);
+  
+  const fadeAnim = React.useRef(new Animated.Value(1)).current;
 
   // Profile State
   const [profile, setProfile] = useState(null);
@@ -180,6 +184,11 @@ export default function CalendarScreen() {
   };
 
   const generateCalendar = (date) => {
+    Animated.sequence([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true })
+    ]).start();
+
     const year = date.getFullYear(), month = date.getMonth();
     const firstDay = new Date(year, month, 1), lastDay = new Date(year, month + 1, 0);
     let startingDayOfWeek = firstDay.getDay(), grid = [], currentWeek = [];
@@ -255,7 +264,7 @@ export default function CalendarScreen() {
         </View>
 
         {/* Grid Lịch */}
-        <View style={styles.calendarBox}>
+        <Animated.View style={[styles.calendarBox, { opacity: fadeAnim }]}>
           <View style={styles.weekRow}>
             {['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'].map((day, idx) => (
               <Text key={idx} style={[styles.weekDayText, (idx === 0 || idx === 6) && {color: THEME.weekendText}]}>{day}</Text>
@@ -283,7 +292,7 @@ export default function CalendarScreen() {
               })}
             </View>
           ))}
-        </View>
+        </Animated.View>
 
         {/* Khung Chi Tiết & Bát Tự Pro */}
         {detailInfo && (
@@ -316,6 +325,7 @@ export default function CalendarScreen() {
             {/* LUẬN GIẢI CÁ NHÂN PRO */}
             {profile && detailInfo.baziReading && (
               <View style={styles.astroBox}>
+                <LinearGradient colors={['rgba(212, 175, 55, 0.15)', 'rgba(0,0,0,0.5)']} style={StyleSheet.absoluteFillObject} />
                 <View style={styles.astroHeader}>
                   <Ionicons name="sparkles" size={16} color={THEME.bg} />
                   <Text style={styles.astroTitle}>GIẢI MÃ TỬ VI CHO {profile.name.toUpperCase()}</Text>
@@ -353,7 +363,7 @@ export default function CalendarScreen() {
 
       {/* Modal Profile Tử Vi */}
       <Modal visible={profileModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
+        <BlurView intensity={80} tint="dark" style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalIconBox}><Ionicons name="compass-outline" size={40} color={THEME.accentGold}/></View>
             <Text style={styles.modalTitle}>THIẾT LẬP BÁT TỰ</Text>
@@ -372,7 +382,7 @@ export default function CalendarScreen() {
               <TouchableOpacity onPress={() => setProfileModal(false)}><Text style={{color: THEME.textSub, fontWeight: 'bold'}}>Đóng</Text></TouchableOpacity>
             </View>
           </View>
-        </View>
+        </BlurView>
       </Modal>
 
     </View>

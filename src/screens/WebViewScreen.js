@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
-import { View, StyleSheet, Linking, TouchableOpacity, Text, Platform, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Linking, TouchableOpacity, Text, Platform, ActivityIndicator, Animated } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { WebView } from 'react-native-webview';
 import * as Network from 'expo-network';
 import * as Haptics from 'expo-haptics';
@@ -30,6 +31,12 @@ export default function WebViewScreen() {
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
   const [currentDisplayUrl, setCurrentDisplayUrl] = useState(activeUrl);
+
+  const toolbarAnim = useRef(new Animated.Value(100)).current;
+
+  useEffect(() => {
+    Animated.spring(toolbarAnim, { toValue: 0, friction: 6, tension: 40, useNativeDriver: true, delay: 300 }).start();
+  }, []);
 
   const checkNetwork = async () => {
     const networkState = await Network.getNetworkStateAsync();
@@ -140,8 +147,8 @@ export default function WebViewScreen() {
       />
 
       {/* Floating Capsule Toolbar (Safari Style) */}
-      <View style={styles.floatingToolbarWrap}>
-        <View style={styles.floatingToolbar}>
+      <Animated.View style={[styles.floatingToolbarWrap, { transform: [{ translateY: toolbarAnim }] }]}>
+        <BlurView intensity={90} tint="dark" style={styles.floatingToolbar}>
           <TouchableOpacity style={styles.toolBtn} onPress={handleBack} disabled={!canGoBack}>
             <Ionicons name="chevron-back" size={24} color={canGoBack ? '#fff' : '#64748B'} />
           </TouchableOpacity>
@@ -159,8 +166,8 @@ export default function WebViewScreen() {
           <TouchableOpacity style={styles.toolBtn} onPress={handleReload}>
             <Ionicons name="reload" size={20} color={'#fff'} />
           </TouchableOpacity>
-        </View>
-      </View>
+        </BlurView>
+      </Animated.View>
 
     </View>
   );
@@ -181,7 +188,7 @@ const styles = StyleSheet.create({
   
   // Toolbar lơ lửng nằm ngay trên Tab Bar chính của ứng dụng
   floatingToolbarWrap: { position: 'absolute', bottom: 140, left: 0, right: 0, alignItems: 'center', zIndex: 20 },
-  floatingToolbar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(30, 41, 59, 0.95)', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 30, shadowColor: '#000', shadowOffset: {width: 0, height: 8}, shadowOpacity: 0.3, shadowRadius: 15, elevation: 15 },
+  floatingToolbar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(30, 41, 59, 0.7)', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 30, shadowColor: '#000', shadowOffset: {width: 0, height: 8}, shadowOpacity: 0.3, shadowRadius: 15, elevation: 15, overflow: 'hidden' },
   toolBtn: { padding: 10, marginHorizontal: 5 },
   toolbarDivider: { width: 1, height: 20, backgroundColor: '#475569', marginHorizontal: 10 },
 

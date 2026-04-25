@@ -1,5 +1,10 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, KeyboardAvoidingView, Platform, Alert, LayoutAnimation, UIManager } from 'react-native';
+import { BlurView } from 'expo-blur';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -31,6 +36,7 @@ export default function ManagePagesScreen({ navigation }) {
       validUrl = 'https://' + validUrl;
     }
     const newItem = { id: Date.now().toString(), name, url: validUrl, icon };
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     const newItems = [...menuItems, newItem];
     setMenuItems(newItems);
     saveToStorage(newItems);
@@ -42,6 +48,7 @@ export default function ManagePagesScreen({ navigation }) {
     Alert.alert('Xác nhận', 'Bạn muốn xóa trang này khỏi danh sách?', [
       { text: 'Hủy', style: 'cancel' },
       { text: 'Xóa', style: 'destructive', onPress: () => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         const newItems = menuItems.filter(i => i.id !== id);
         setMenuItems(newItems);
         saveToStorage(newItems);
@@ -85,14 +92,14 @@ export default function ManagePagesScreen({ navigation }) {
         keyExtractor={item => item.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
       />
-      <View style={styles.manageInputContainer}>
+      <BlurView intensity={90} tint="light" style={styles.manageInputContainer}>
         <Text style={styles.manageInputTitle}>Thêm trang web mới</Text>
         <TextInput style={styles.input} placeholder="Tên trang (VD: Google)" value={name} onChangeText={setName} />
         <TextInput style={styles.input} placeholder="Đường link (VD: google.com)" value={url} onChangeText={setUrl} keyboardType="url" autoCapitalize="none" />
         <TouchableOpacity style={styles.addButton} onPress={handleAdd}>
           <Text style={styles.addButtonText}>Lưu Trang</Text>
         </TouchableOpacity>
-      </View>
+      </BlurView>
     </KeyboardAvoidingView>
   );
 }
@@ -107,7 +114,7 @@ const styles = StyleSheet.create({
   manageItemName: { fontSize: 16, fontWeight: 'bold', color: '#333' },
   manageItemUrl: { fontSize: 13, color: '#888', marginTop: 4 },
   deleteBtn: { padding: 10 },
-  manageInputContainer: { padding: 20, paddingBottom: 130, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 10 },
+  manageInputContainer: { padding: 20, paddingBottom: 130, backgroundColor: 'rgba(255,255,255,0.7)', borderTopWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 10 },
   manageInputTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: THEME_COLOR },
   input: { backgroundColor: '#F5F5F5', borderRadius: 8, padding: 12, fontSize: 16, marginBottom: 10, borderWidth: 1, borderColor: '#ddd' },
   addButton: { backgroundColor: THEME_COLOR, padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 5 },

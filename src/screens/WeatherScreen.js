@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Modal, Platform, Animated } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -38,10 +40,25 @@ export default function WeatherScreen() {
   const [selectedDayTasks, setSelectedDayTasks] = useState([]);
   const [selectedDateStr, setSelectedDateStr] = useState('');
 
+  // Animations
+  const fadeAnims = React.useRef([...Array(5)].map(() => new Animated.Value(0))).current;
+  const slideAnims = React.useRef([...Array(5)].map(() => new Animated.Value(50))).current;
+
   useEffect(() => {
     fetchWeather();
     fetchTasksFromGoogle();
   }, []);
+
+  useEffect(() => {
+    if (weatherData) {
+      Animated.stagger(100, fadeAnims.map((anim, i) => 
+        Animated.parallel([
+          Animated.timing(anim, { toValue: 1, duration: 500, useNativeDriver: true }),
+          Animated.timing(slideAnims[i], { toValue: 0, duration: 500, useNativeDriver: true })
+        ])
+      )).start();
+    }
+  }, [weatherData]);
 
   const fetchTasksFromGoogle = async () => {
     try {
@@ -234,22 +251,25 @@ export default function WeatherScreen() {
       if (isSun) dayStyle = [styles.forecastDay, { backgroundColor: THEME.sunBg, borderColor: THEME.sunBorder, borderWidth: 2 }];
 
       days.push(
-        <TouchableOpacity key={i} style={dayStyle} onPress={() => handleDayPress(dateStr)} activeOpacity={0.8}>
-          {taskCount > 0 && (
-            <View style={styles.badgeBox}>
-              <Text style={styles.badgeText}>{taskCount > 9 ? '9+' : taskCount}</Text>
-            </View>
-          )}
+        <Animated.View key={i} style={{ opacity: fadeAnims[i], transform: [{ translateY: slideAnims[i] }] }}>
+          <TouchableOpacity style={dayStyle} onPress={() => handleDayPress(dateStr)} activeOpacity={0.8}>
+            <LinearGradient colors={['rgba(255,255,255,0.05)', 'rgba(0,0,0,0.2)']} style={StyleSheet.absoluteFillObject} />
+            {taskCount > 0 && (
+              <View style={styles.badgeBox}>
+                <Text style={styles.badgeText}>{taskCount > 9 ? '9+' : taskCount}</Text>
+              </View>
+            )}
 
-          <Text style={[styles.fcDayName, isSat && {color: THEME.satBorder}, isSun && {color: THEME.sunBorder}]}>
-            {getDayName(dateStr)}
-          </Text>
-          <Text style={styles.fcSolarDate}>{shortDate}</Text>
-          <Text style={styles.fcLunarDate}>{getLunarInfo(dateStr)}</Text>
-          <Ionicons name={getIcon(daily.weather_code[i])} size={26} color={THEME.accentBlue} style={{marginVertical: 5}}/>
-          <Text style={styles.fcTemp}>{Math.round(daily.temperature_2m_max[i])}°</Text>
-          <Text style={styles.fcMinMax}>{Math.round(daily.temperature_2m_min[i])}° / {Math.round(daily.temperature_2m_max[i])}°</Text>
-        </TouchableOpacity>
+            <Text style={[styles.fcDayName, isSat && {color: THEME.satBorder}, isSun && {color: THEME.sunBorder}]}>
+              {getDayName(dateStr)}
+            </Text>
+            <Text style={styles.fcSolarDate}>{shortDate}</Text>
+            <Text style={styles.fcLunarDate}>{getLunarInfo(dateStr)}</Text>
+            <Ionicons name={getIcon(daily.weather_code[i])} size={26} color={THEME.accentBlue} style={{marginVertical: 5}}/>
+            <Text style={styles.fcTemp}>{Math.round(daily.temperature_2m_max[i])}°</Text>
+            <Text style={styles.fcMinMax}>{Math.round(daily.temperature_2m_min[i])}° / {Math.round(daily.temperature_2m_max[i])}°</Text>
+          </TouchableOpacity>
+        </Animated.View>
       );
     }
     return days;
@@ -359,23 +379,17 @@ export default function WeatherScreen() {
         
       </ScrollView>
 
-      {/* Modal Hiện Lịch Trình Công Việc (Glassmorphism effect) */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
+      <Modal visible={modalVisible} transparent animationType="fade">
+        <BlurView intensity={80} tint="dark" style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalHeaderTitle}>LỊCH TRÌNH</Text>
+                <Text style={styles.modalHeaderTitle}>CÔNG VIỆC</Text>
                 <Text style={styles.modalHeaderDate}>{selectedDateStr}</Text>
               </View>
               <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
-                <Ionicons name="close-circle" size={32} color={THEME.textLight} />
+                <Ionicons name="close" size={24} color={THEME.textLight} />
               </TouchableOpacity>
             </View>
 
@@ -384,7 +398,7 @@ export default function WeatherScreen() {
             </ScrollView>
 
           </View>
-        </View>
+        </BlurView>
       </Modal>
 
     </View>

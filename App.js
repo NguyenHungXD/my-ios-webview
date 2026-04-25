@@ -31,6 +31,7 @@ const THEME_COLOR = '#2E8B57'; // Màu xanh lá cây chuyên nghiệp
 
 const DEFAULT_MENU = [
   { id: '1', name: 'Trang Chủ', url: 'https://thanhhungqs.xyz/manager/index.php', icon: 'home-outline' },
+  { id: '2', name: 'VnExpress', url: 'https://vnexpress.net', icon: 'newspaper-outline' },
 ];
 
 export const MenuContext = createContext();

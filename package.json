@@ -18,6 +18,8 @@
     "expo-constants": "~18.0.13",
     "expo-haptics": "~14.0.1",
     "expo-location": "~18.0.6",
+    "expo-blur": "~14.0.2",
+    "expo-linear-gradient": "~14.0.2",
     "expo-network": "~7.0.5",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
