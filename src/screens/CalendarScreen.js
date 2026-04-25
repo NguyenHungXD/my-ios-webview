@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput, Alert, Platform, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput, Alert, Platform, Animated, PanResponder } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -126,13 +126,72 @@ const checkDiaChi = (myChi, dayChi) => {
   return { type: 'Bình Thường', color: THEME.textSub, desc: `Ngày ${dayChi} không xung khắc với tuổi ${myChi}.` };
 };
 
+const getGioHoangDao = (dayChiStr) => {
+  const hoangDaoMap = {
+    'Tý': ['Tý', 'Sửu', 'Mão', 'Ngọ', 'Thân', 'Dậu'],
+    'Ngọ': ['Tý', 'Sửu', 'Mão', 'Ngọ', 'Thân', 'Dậu'],
+    'Sửu': ['Dần', 'Mão', 'Tỵ', 'Thân', 'Tuất', 'Hợi'],
+    'Mùi': ['Dần', 'Mão', 'Tỵ', 'Thân', 'Tuất', 'Hợi'],
+    'Dần': ['Tý', 'Sửu', 'Thìn', 'Tỵ', 'Mùi', 'Tuất'],
+    'Thân': ['Tý', 'Sửu', 'Thìn', 'Tỵ', 'Mùi', 'Tuất'],
+    'Mão': ['Tý', 'Dần', 'Mão', 'Ngọ', 'Mùi', 'Dậu'],
+    'Dậu': ['Tý', 'Dần', 'Mão', 'Ngọ', 'Mùi', 'Dậu'],
+    'Thìn': ['Dần', 'Thìn', 'Tỵ', 'Thân', 'Dậu', 'Hợi'],
+    'Tuất': ['Dần', 'Thìn', 'Tỵ', 'Thân', 'Dậu', 'Hợi'],
+    'Tỵ': ['Sửu', 'Thìn', 'Ngọ', 'Mùi', 'Tuất', 'Hợi'],
+    'Hợi': ['Sửu', 'Thìn', 'Ngọ', 'Mùi', 'Tuất', 'Hợi']
+  };
+  return hoangDaoMap[dayChiStr] || [];
+};
+
+const getHoliday = (lunarDay, lunarMonth) => {
+  const holidays = {
+    '1/1': 'Tết Nguyên Đán',
+    '15/1': 'Tết Nguyên Tiêu',
+    '10/3': 'Giỗ Tổ Hùng Vương',
+    '15/4': 'Lễ Phật Đản',
+    '5/5': 'Tết Đoan Ngọ',
+    '15/7': 'Lễ Vu Lan',
+    '15/8': 'Tết Trung Thu',
+    '23/12': 'Ông Công Ông Táo'
+  };
+  return holidays[`${lunarDay}/${lunarMonth}`];
+};
+
 export default function CalendarScreen() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [calendarGrid, setCalendarGrid] = useState([]);
   const [detailInfo, setDetailInfo] = useState(null);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
   
   const fadeAnim = React.useRef(new Animated.Value(1)).current;
+  const pulseAnim = React.useRef(new Animated.Value(1)).current;
+
+  const panResponder = React.useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => Math.abs(gestureState.dx) > 20,
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dx > 50) {
+          setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+          Haptics.selectionAsync();
+        } else if (gestureState.dx < -50) {
+          setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+          Haptics.selectionAsync();
+        }
+      }
+    })
+  ).current;
+
+  // Pulse animation for selected cell
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.1, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true })
+      ])
+    ).start();
+  }, []);
 
   // Profile State
   const [profile, setProfile] = useState(null);
@@ -220,6 +279,8 @@ export default function CalendarScreen() {
       const ngayCanChi = `${dayCan} ${dayChi} (${LUC_THAP_HOA_GIAP[`${dayCan} ${dayChi}`] || 'Nạp Âm'})`;
       
       const truc = getTruc(lM, dayChi);
+      const hoangDaoHours = getGioHoangDao(dayChi);
+      const holiday = getHoliday(lD, lM);
 
       let baziReading = null;
       if (userProfile) {
@@ -237,12 +298,19 @@ export default function CalendarScreen() {
         lunarStr: `Mùng ${lD} tháng ${lM} năm ${lY}`,
         namCanChi, ngayCanChi, truc,
         isRằm: lD === 15, isMung1: lD === 1,
+        hoangDaoHours, holiday,
         baziReading
       });
     } catch(e) { setDetailInfo(null); }
   };
 
-  const handleDayPress = (date) => { if (date) { Haptics.selectionAsync(); setSelectedDate(date); } };
+  const handleDayPress = (date) => { 
+    if (date) { 
+      Haptics.selectionAsync(); 
+      setSelectedDate(date); 
+      setDetailModalVisible(true);
+    } 
+  };
   const isSelected = (date) => date && date.toDateString() === selectedDate.toDateString();
 
   return (
@@ -264,7 +332,7 @@ export default function CalendarScreen() {
         </View>
 
         {/* Grid Lịch */}
-        <Animated.View style={[styles.calendarBox, { opacity: fadeAnim }]}>
+        <Animated.View style={[styles.calendarBox, { opacity: fadeAnim }]} {...panResponder.panHandlers}>
           <View style={styles.weekRow}>
             {['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'].map((day, idx) => (
               <Text key={idx} style={[styles.weekDayText, (idx === 0 || idx === 6) && {color: THEME.weekendText}]}>{day}</Text>
@@ -281,12 +349,15 @@ export default function CalendarScreen() {
                 let lunar = [1,1,1];
                 try { lunar = amlich.convertSolar2Lunar(dateObj.getDate(), dateObj.getMonth()+1, dateObj.getFullYear(), 7); } catch(e) {}
                 const isRằm = lunar[0] === 15, isMung1 = lunar[0] === 1;
+                const isHoliday = !!getHoliday(lunar[0], lunar[1]);
 
                 return (
-                  <TouchableOpacity key={dIdx} style={[styles.dayCell, isTod && styles.todayCell, isSel && styles.selectedCell]} onPress={() => handleDayPress(dateObj)} activeOpacity={0.7}>
+                  <TouchableOpacity key={dIdx} style={[styles.dayCell, isTod && styles.todayCell]} onPress={() => handleDayPress(dateObj)} activeOpacity={0.7}>
+                    {isSel && <Animated.View style={[StyleSheet.absoluteFill, {borderRadius: 12, backgroundColor: THEME.accentGold, transform: [{scale: pulseAnim}]}]} />}
                     {isRằm && <View style={styles.moonDot} />}
-                    <Text style={[styles.solarText, isWeekend && {color: THEME.weekendText}, isSel && {color: THEME.header, fontWeight: 'bold'}]}>{dateObj.getDate()}</Text>
-                    <Text style={[styles.lunarText, isMung1 && {color: THEME.accentGold, fontWeight: 'bold'}, isSel && {color: THEME.card}]}>{lunar[0] === 1 ? `${lunar[0]}/${lunar[1]}` : lunar[0]}</Text>
+                    {isHoliday && <View style={{width: 4, height: 4, borderRadius: 2, backgroundColor: THEME.accentRed, position: 'absolute', top: 4}} />}
+                    <Text style={[styles.solarText, isWeekend && {color: THEME.weekendText}, isSel && {color: THEME.bg, fontWeight: 'bold'}]}>{dateObj.getDate()}</Text>
+                    <Text style={[styles.lunarText, isMung1 && {color: THEME.accentGold, fontWeight: 'bold'}, isSel && {color: THEME.bg}]}>{lunar[0] === 1 ? `${lunar[0]}/${lunar[1]}` : lunar[0]}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -294,72 +365,88 @@ export default function CalendarScreen() {
           ))}
         </Animated.View>
 
-        {/* Khung Chi Tiết & Bát Tự Pro */}
-        {detailInfo && (
-          <View style={styles.detailBox}>
-            <View style={styles.detailRibbon}>
-              <Text style={styles.detailRibbonText}>{detailInfo.isRằm ? '🌕 RẰM' : (detailInfo.isMung1 ? '🌑 MÙNG 1' : 'TỨ TRỤ BA-ZI')}</Text>
-            </View>
-            
-            <Text style={styles.detailDateMain}>{selectedDate.getDate()} / {selectedDate.getMonth()+1} / {selectedDate.getFullYear()}</Text>
-            <Text style={styles.detailLunarMain}>{detailInfo.lunarStr}</Text>
-            <View style={styles.divider} />
+      </ScrollView>
 
-            <View style={styles.baziGrid}>
-              <View style={styles.baziCol}>
-                <Text style={styles.baziLabel}>Năm</Text>
-                <Text style={styles.baziValue}>{detailInfo.namCanChi.split(' ')[0]} {detailInfo.namCanChi.split(' ')[1]}</Text>
-              </View>
-              <View style={styles.baziColCenter}>
-                <Text style={styles.baziLabel}>Ngày</Text>
-                <Text style={styles.baziValueMain}>{detailInfo.ngayCanChi.split(' ')[0]} {detailInfo.ngayCanChi.split(' ')[1]}</Text>
-              </View>
-              <View style={styles.baziCol}>
-                <Text style={styles.baziLabel}>Thập Nhị Trực</Text>
-                <Text style={[styles.baziValue, {color: THEME.accentGreen}]}>Trực {detailInfo.truc}</Text>
-              </View>
-            </View>
-            <Text style={styles.napAmText}>Hoa giáp ngày: {detailInfo.ngayCanChi}</Text>
-            <Text style={styles.trucDescText}>{TRUC_DESC[detailInfo.truc]}</Text>
-
-            {/* LUẬN GIẢI CÁ NHÂN PRO */}
-            {profile && detailInfo.baziReading && (
-              <View style={styles.astroBox}>
-                <LinearGradient colors={['rgba(212, 175, 55, 0.15)', 'rgba(0,0,0,0.5)']} style={StyleSheet.absoluteFillObject} />
-                <View style={styles.astroHeader}>
-                  <Ionicons name="sparkles" size={16} color={THEME.bg} />
-                  <Text style={styles.astroTitle}>GIẢI MÃ TỬ VI CHO {profile.name.toUpperCase()}</Text>
+      {/* Bottom Sheet Chi Tiết Ngày */}
+      <Modal visible={detailModalVisible} transparent animationType="slide">
+        <TouchableOpacity style={{flex: 1}} activeOpacity={1} onPress={() => setDetailModalVisible(false)} />
+        <BlurView intensity={90} tint="dark" style={styles.bottomSheet}>
+          <View style={styles.bottomSheetHandle} />
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {detailInfo && (
+              <View style={{paddingBottom: 40}}>
+                <View style={styles.detailRibbon}>
+                  <Text style={styles.detailRibbonText}>
+                    {detailInfo.holiday ? `🎉 ${detailInfo.holiday.toUpperCase()}` : (detailInfo.isRằm ? '🌕 RẰM' : (detailInfo.isMung1 ? '🌑 MÙNG 1' : 'TỨ TRỤ BA-ZI'))}
+                  </Text>
                 </View>
-                <View style={styles.astroContent}>
-                  <Text style={styles.astroMyInfo}>Mệnh: {profile.napAm}  |  Nhật Can: {profile.nhatCan}</Text>
-                  
-                  <View style={styles.astroItem}>
-                    <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                      <Text style={styles.astroItemTitle}>Thập Thần: </Text>
-                      <View style={[styles.astroBadge, {backgroundColor: detailInfo.baziReading.thapThan.color}]}>
-                        <Text style={styles.astroBadgeText}>{detailInfo.baziReading.thapThan.key.toUpperCase()}</Text>
+                
+                <Text style={styles.detailDateMain}>{selectedDate.getDate()} / {selectedDate.getMonth()+1} / {selectedDate.getFullYear()}</Text>
+                <Text style={styles.detailLunarMain}>{detailInfo.lunarStr}</Text>
+                <View style={styles.divider} />
+
+                <View style={styles.hoangDaoBox}>
+                  <Text style={styles.hoangDaoTitle}>Giờ Hoàng Đạo</Text>
+                  <View style={styles.hoangDaoList}>
+                    {detailInfo.hoangDaoHours.map(h => <Text key={h} style={styles.hoangDaoBadge}>{h}</Text>)}
+                  </View>
+                </View>
+
+                <View style={styles.baziGrid}>
+                  <View style={styles.baziCol}>
+                    <Text style={styles.baziLabel}>Năm</Text>
+                    <Text style={styles.baziValue}>{detailInfo.namCanChi.split(' ')[0]} {detailInfo.namCanChi.split(' ')[1]}</Text>
+                  </View>
+                  <View style={styles.baziColCenter}>
+                    <Text style={styles.baziLabel}>Ngày</Text>
+                    <Text style={styles.baziValueMain}>{detailInfo.ngayCanChi.split(' ')[0]} {detailInfo.ngayCanChi.split(' ')[1]}</Text>
+                  </View>
+                  <View style={styles.baziCol}>
+                    <Text style={styles.baziLabel}>Thập Nhị Trực</Text>
+                    <Text style={[styles.baziValue, {color: THEME.accentGreen}]}>Trực {detailInfo.truc}</Text>
+                  </View>
+                </View>
+                <Text style={styles.napAmText}>Hoa giáp ngày: {detailInfo.ngayCanChi}</Text>
+                <Text style={styles.trucDescText}>{TRUC_DESC[detailInfo.truc]}</Text>
+
+                {profile && detailInfo.baziReading && (
+                  <View style={styles.astroBox}>
+                    <LinearGradient colors={['rgba(212, 175, 55, 0.15)', 'rgba(0,0,0,0.5)']} style={StyleSheet.absoluteFillObject} />
+                    <View style={styles.astroHeader}>
+                      <Ionicons name="sparkles" size={16} color={THEME.bg} />
+                      <Text style={styles.astroTitle}>GIẢI MÃ TỬ VI CHO {profile.name.toUpperCase()}</Text>
+                    </View>
+                    <View style={styles.astroContent}>
+                      <Text style={styles.astroMyInfo}>Mệnh: {profile.napAm}  |  Nhật Can: {profile.nhatCan}</Text>
+                      
+                      <View style={styles.astroItem}>
+                        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                          <Text style={styles.astroItemTitle}>Thập Thần: </Text>
+                          <View style={[styles.astroBadge, {backgroundColor: detailInfo.baziReading.thapThan.color}]}>
+                            <Text style={styles.astroBadgeText}>{detailInfo.baziReading.thapThan.key.toUpperCase()}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.astroItemDesc}>{detailInfo.baziReading.thapThan.desc}</Text>
+                      </View>
+
+                      <View style={styles.astroItem}>
+                        <Text style={[styles.astroItemTitle, {color: detailInfo.baziReading.diaChi.color}]}>Hành Xung Địa Chi ({detailInfo.baziReading.diaChi.type}):</Text>
+                        <Text style={styles.astroItemDesc}>{detailInfo.baziReading.diaChi.desc}</Text>
                       </View>
                     </View>
-                    <Text style={styles.astroItemDesc}>{detailInfo.baziReading.thapThan.desc}</Text>
                   </View>
+                )}
 
-                  <View style={styles.astroItem}>
-                    <Text style={[styles.astroItemTitle, {color: detailInfo.baziReading.diaChi.color}]}>Hành Xung Địa Chi ({detailInfo.baziReading.diaChi.type}):</Text>
-                    <Text style={styles.astroItemDesc}>{detailInfo.baziReading.diaChi.desc}</Text>
-                  </View>
-                </View>
+                {!profile && (
+                  <TouchableOpacity style={styles.promptProfile} onPress={() => setProfileModal(true)}>
+                    <Text style={styles.promptProfileText}>Thiết lập Hồ Sơ Bát Tự để xem giải mã chuyên sâu</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
-
-            {!profile && (
-              <TouchableOpacity style={styles.promptProfile} onPress={() => setProfileModal(true)}>
-                <Text style={styles.promptProfileText}>Thiết lập Hồ Sơ Bát Tự để xem giải mã chuyên sâu</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-      </ScrollView>
+          </ScrollView>
+        </BlurView>
+      </Modal>
 
       {/* Modal Profile Tử Vi */}
       <Modal visible={profileModal} transparent animationType="fade">
@@ -412,12 +499,19 @@ const styles = StyleSheet.create({
   solarText: { fontSize: 16, color: THEME.textLight, fontWeight: 'bold' },
   lunarText: { fontSize: 9, color: THEME.textSub, marginTop: 2, fontWeight: '600' },
 
-  detailBox: { backgroundColor: THEME.card, marginTop: 25, padding: 20, borderRadius: 25, borderWidth: 1, borderColor: THEME.border, marginHorizontal: 15, overflow: 'hidden' },
-  detailRibbon: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: THEME.accentRed, paddingVertical: 6, alignItems: 'center' },
+  bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, maxHeight: '80%', backgroundColor: 'rgba(28, 28, 32, 0.85)', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 20, paddingTop: 10, borderWidth: 1, borderColor: THEME.border, shadowColor: '#000', shadowOffset: {width: 0, height: -10}, shadowOpacity: 0.5, shadowRadius: 20, elevation: 20 },
+  bottomSheetHandle: { width: 40, height: 5, backgroundColor: '#555', borderRadius: 3, alignSelf: 'center', marginBottom: 15 },
+  
+  detailRibbon: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: THEME.accentRed, paddingVertical: 6, alignItems: 'center', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   detailRibbonText: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 2 },
-  detailDateMain: { fontSize: 28, fontWeight: '900', color: THEME.textLight, textAlign: 'center', marginTop: 15, letterSpacing: 1 },
+  detailDateMain: { fontSize: 28, fontWeight: '900', color: THEME.textLight, textAlign: 'center', marginTop: 25, letterSpacing: 1 },
   detailLunarMain: { fontSize: 16, color: THEME.accentGold, fontStyle: 'italic', textAlign: 'center', marginTop: 5, fontWeight: '600' },
   divider: { height: 1, backgroundColor: THEME.border, marginVertical: 15 },
+
+  hoangDaoBox: { backgroundColor: THEME.bg, borderRadius: 15, padding: 15, marginBottom: 15, borderWidth: 1, borderColor: THEME.accentGold },
+  hoangDaoTitle: { color: THEME.accentGold, fontWeight: 'bold', marginBottom: 10, textAlign: 'center', fontSize: 13, textTransform: 'uppercase' },
+  hoangDaoList: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+  hoangDaoBadge: { backgroundColor: THEME.card, color: THEME.textLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, margin: 4, fontSize: 12, borderWidth: 1, borderColor: THEME.border, overflow: 'hidden' },
   
   baziGrid: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: THEME.bg, borderRadius: 15, padding: 15, borderWidth: 1, borderColor: THEME.border },
   baziCol: { alignItems: 'center', flex: 1 },
