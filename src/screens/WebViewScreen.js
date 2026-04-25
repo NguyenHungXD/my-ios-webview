@@ -1,23 +1,27 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { View, StyleSheet, Linking, TouchableOpacity, Text, Platform, ActivityIndicator, Animated } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { WebView } from 'react-native-webview';
 import * as Network from 'expo-network';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { MenuContext } from '../../App';
 
-const THEME_COLOR = '#1E293B'; // Dark Blue/Gray
-const ACCENT_COLOR = '#FFD700'; // Gold
+const THEME_COLOR = '#121214'; // Dark
+const ACCENT_COLOR = '#D4AF37'; // Gold
 
 const OfflineScreen = ({ onRetry }) => (
   <View style={styles.offlineContainer}>
-    <Ionicons name="wifi-outline" size={80} color="#ccc" />
-    <Text style={styles.offlineTitle}>Mất kết nối Internet</Text>
-    <Text style={styles.offlineText}>Vui lòng kiểm tra lại kết nối mạng của bạn.</Text>
-    <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-      <Text style={styles.retryButtonText}>Thử lại</Text>
-    </TouchableOpacity>
+    <LinearGradient colors={['#121214', '#1C1C20']} style={StyleSheet.absoluteFill} />
+    <BlurView intensity={80} tint="dark" style={styles.offlineBlurBox}>
+      <Ionicons name="wifi-outline" size={80} color={ACCENT_COLOR} />
+      <Text style={styles.offlineTitle}>Mất kết nối Internet</Text>
+      <Text style={styles.offlineText}>Vui lòng kiểm tra lại kết nối mạng của bạn.</Text>
+      <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
+        <Text style={styles.retryButtonText}>THỬ LẠI</Text>
+      </TouchableOpacity>
+    </BlurView>
   </View>
 );
 
@@ -124,7 +128,9 @@ export default function WebViewScreen() {
           {/* Progress Bar chạy chìm dưới đáy Smart Address Bar */}
           {isLoading && (
             <View style={styles.progressTrack}>
-              <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
+              <Animated.View style={[styles.progressBar, { width: `${progress * 100}%` }]}>
+                <LinearGradient colors={['#D4AF37', '#FFAA00']} start={{x: 0, y: 0}} end={{x: 1, y: 0}} style={StyleSheet.absoluteFill} />
+              </Animated.View>
             </View>
           )}
         </View>
@@ -174,27 +180,28 @@ export default function WebViewScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1, backgroundColor: THEME_COLOR },
   
-  headerArea: { paddingTop: Platform.OS === 'ios' ? 50 : 20, paddingHorizontal: 15, paddingBottom: 10, backgroundColor: '#F8FAFC', zIndex: 10 },
-  smartAddressBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 10, shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, overflow: 'hidden' },
-  urlText: { fontSize: 14, color: '#334155', fontWeight: '600', maxWidth: '70%' },
-  reloadBtn: { padding: 4, backgroundColor: '#F1F5F9', borderRadius: 12 },
+  headerArea: { paddingTop: Platform.OS === 'ios' ? 50 : 20, paddingHorizontal: 15, paddingBottom: 10, backgroundColor: THEME_COLOR, zIndex: 10 },
+  smartAddressBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1C1C20', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 10, shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.5, shadowRadius: 10, elevation: 5, overflow: 'hidden', borderWidth: 1, borderColor: '#2C2C32' },
+  urlText: { fontSize: 14, color: '#F5F5F5', fontWeight: '600', maxWidth: '70%' },
+  reloadBtn: { padding: 4, backgroundColor: '#2D2D34', borderRadius: 12 },
   
   progressTrack: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, backgroundColor: 'transparent' },
-  progressBar: { height: '100%', backgroundColor: '#3B82F6', borderTopRightRadius: 3, borderBottomRightRadius: 3 },
+  progressBar: { height: '100%', borderTopRightRadius: 3, borderBottomRightRadius: 3, overflow: 'hidden' },
   
-  webview: { flex: 1, backgroundColor: '#ffffff' },
+  webview: { flex: 1, backgroundColor: THEME_COLOR },
   
   // Toolbar lơ lửng nằm ngay trên Tab Bar chính của ứng dụng
   floatingToolbarWrap: { position: 'absolute', bottom: 140, left: 0, right: 0, alignItems: 'center', zIndex: 20 },
-  floatingToolbar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(30, 41, 59, 0.7)', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 30, shadowColor: '#000', shadowOffset: {width: 0, height: 8}, shadowOpacity: 0.3, shadowRadius: 15, elevation: 15, overflow: 'hidden' },
+  floatingToolbar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(10, 10, 12, 0.85)', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 30, shadowColor: '#000', shadowOffset: {width: 0, height: 8}, shadowOpacity: 0.5, shadowRadius: 15, elevation: 15, overflow: 'hidden', borderWidth: 1, borderColor: '#2C2C32' },
   toolBtn: { padding: 10, marginHorizontal: 5 },
-  toolbarDivider: { width: 1, height: 20, backgroundColor: '#475569', marginHorizontal: 10 },
+  toolbarDivider: { width: 1, height: 20, backgroundColor: '#2C2C32', marginHorizontal: 10 },
 
-  offlineContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff', padding: 20 },
-  offlineTitle: { fontSize: 22, fontWeight: 'bold', color: '#333', marginTop: 20, marginBottom: 10 },
-  offlineText: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 30 },
-  retryButton: { backgroundColor: THEME_COLOR, paddingHorizontal: 30, paddingVertical: 12, borderRadius: 25 },
-  retryButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  offlineContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: THEME_COLOR, padding: 20 },
+  offlineBlurBox: { padding: 30, borderRadius: 25, alignItems: 'center', borderWidth: 1, borderColor: ACCENT_COLOR, overflow: 'hidden' },
+  offlineTitle: { fontSize: 22, fontWeight: '900', color: ACCENT_COLOR, marginTop: 20, marginBottom: 10 },
+  offlineText: { fontSize: 14, color: '#A0A0A0', textAlign: 'center', marginBottom: 30 },
+  retryButton: { backgroundColor: ACCENT_COLOR, paddingHorizontal: 30, paddingVertical: 12, borderRadius: 25 },
+  retryButtonText: { color: THEME_COLOR, fontSize: 14, fontWeight: '900', letterSpacing: 1 },
 });
