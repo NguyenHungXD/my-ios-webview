@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   manageItemName: { fontSize: 16, fontWeight: 'bold', color: '#333' },
   manageItemUrl: { fontSize: 13, color: '#888', marginTop: 4 },
   deleteBtn: { padding: 10 },
-  manageInputContainer: { padding: 20, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 10 },
+  manageInputContainer: { padding: 20, paddingBottom: 130, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 10 },
   manageInputTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: THEME_COLOR },
   input: { backgroundColor: '#F5F5F5', borderRadius: 8, padding: 12, fontSize: 16, marginBottom: 10, borderWidth: 1, borderColor: '#ddd' },
   addButton: { backgroundColor: THEME_COLOR, padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 5 },

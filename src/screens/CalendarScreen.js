@@ -238,7 +238,7 @@ export default function CalendarScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={{padding: 15, paddingBottom: 100}} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{padding: 15, paddingBottom: 150}} showsVerticalScrollIndicator={false}>
         
         {/* Header */}
         <View style={styles.header}>

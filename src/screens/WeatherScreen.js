@@ -288,7 +288,7 @@ export default function WeatherScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={{padding: 15, paddingBottom: 100}}>
+      <ScrollView contentContainerStyle={{padding: 15, paddingBottom: 150}}>
         
         <View style={styles.card}>
           <Text style={styles.location}>{city}</Text>

@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   webview: { flex: 1, backgroundColor: '#ffffff' },
   
   // Toolbar lơ lửng nằm ngay trên Tab Bar chính của ứng dụng
-  floatingToolbarWrap: { position: 'absolute', bottom: 105, left: 0, right: 0, alignItems: 'center', zIndex: 20 },
+  floatingToolbarWrap: { position: 'absolute', bottom: 140, left: 0, right: 0, alignItems: 'center', zIndex: 20 },
   floatingToolbar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(30, 41, 59, 0.95)', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 30, shadowColor: '#000', shadowOffset: {width: 0, height: 8}, shadowOpacity: 0.3, shadowRadius: 15, elevation: 15 },
   toolBtn: { padding: 10, marginHorizontal: 5 },
   toolbarDivider: { width: 1, height: 20, backgroundColor: '#475569', marginHorizontal: 10 },

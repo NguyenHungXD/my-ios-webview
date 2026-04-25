@@ -317,7 +317,7 @@ export default function TaskScreen() {
           data={tasks}
           renderItem={renderItem}
           keyExtractor={i => i.dateStr}
-          contentContainerStyle={{padding: 20, paddingBottom: 100}}
+          contentContainerStyle={{padding: 20, paddingBottom: 150}}
           ListEmptyComponent={<Text style={styles.emptyText}>✨ Bạn không có công việc nào trong 7 ngày tới.</Text>}
           showsVerticalScrollIndicator={false}
         />
@@ -376,5 +376,5 @@ const styles = StyleSheet.create({
 
   errorText: { color: THEME.accentRed, padding: 15, textAlign: 'center' },
   emptyText: { color: THEME.textSub, textAlign: 'center', marginTop: 80, fontStyle: 'italic' },
-  clearBtn: { position: 'absolute', bottom: 110, alignSelf: 'center', opacity: 0.5 }
+  clearBtn: { position: 'absolute', bottom: 140, alignSelf: 'center', opacity: 0.5 }
 });
