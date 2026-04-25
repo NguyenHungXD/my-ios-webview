@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Platform } from 'react-native';
-import * as Location from 'expo-location';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 const amlich = require('amlich');
 
-// Tông màu Dark Theme từ bản gốc WPF
 const THEME = {
   bg: '#2C333A',
   card: '#3B4453',
@@ -23,68 +20,12 @@ const THEME = {
 export default function WeatherScreen() {
   const [weatherData, setWeatherData] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [city, setCity] = useState('VỊ TRÍ CỦA BẠN');
-  const [permissionGranted, setPermissionGranted] = useState(true);
-
-  useEffect(() => {
-    checkPermissionAndFetch();
-  }, []);
-
-  const checkPermissionAndFetch = async () => {
-    try {
-      const { status } = await Location.getForegroundPermissionsAsync();
-      if (status === 'granted') {
-        setPermissionGranted(true);
-        executeWeatherFetch(); // Tự động tải nhưng không xin quyền
-      } else {
-        setPermissionGranted(false);
-      }
-    } catch(e) {
-      setPermissionGranted(false);
-    }
-  };
-
-  const requestPermissionAndFetch = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Bạn đã từ chối quyền Vị trí. Hãy cấp lại trong Cài đặt iOS.');
-        setPermissionGranted(false);
-        return;
-      }
-      setPermissionGranted(true);
-      executeWeatherFetch();
-    } catch(e) {
-      setErrorMsg('Lỗi xin quyền: ' + e.message);
-    }
-  };
-
-  const executeWeatherFetch = async () => {
-    setIsLoading(true);
-    setErrorMsg(null);
-    try {
-      let loc = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = loc.coords;
-
-      try {
-        let geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
-        if (geocode && geocode.length > 0) {
-          setCity((geocode[0].subregion || geocode[0].city || geocode[0].region || 'VỊ TRÍ CỦA BẠN').toUpperCase());
-        }
-      } catch(e) {}
-
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
-      
-      const response = await fetch(url);
-      const data = await response.json();
-      setWeatherData(data);
-    } catch (error) {
-      setErrorMsg('Lỗi kết nối. Vui lòng kiểm tra mạng.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Tọa độ Vũng Tàu (Mặc định để tránh dùng GPS/Native Module)
+  const city = 'VŨNG TÀU';
+  const latitude = 10.34599;
+  const longitude = 107.08426;
 
   const getDayName = (dateStr) => {
     const d = new Date(dateStr);
@@ -102,7 +43,7 @@ export default function WeatherScreen() {
         const lunar = amlich.convertSolar2Lunar(d, m, y, 7);
         return `${lunar[0]}/${lunar[1]}`;
       }
-    } catch(e) { console.log(e); }
+    } catch(e) {}
     return '--/--';
   };
 
@@ -111,7 +52,21 @@ export default function WeatherScreen() {
     return { isSat: d.getDay() === 6, isSun: d.getDay() === 0 };
   };
 
+  const executeWeatherFetch = async () => {
+    setIsLoading(true);
+    setErrorMsg(null);
 
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
+      const response = await fetch(url);
+      const data = await response.json();
+      setWeatherData(data);
+    } catch (error) {
+      setErrorMsg('Lỗi kết nối mạng. Vui lòng thử lại.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getIcon = (code) => {
     if (code >= 1 && code <= 3) return "partly-sunny";
@@ -138,31 +93,16 @@ export default function WeatherScreen() {
     );
   }
 
-  if (!permissionGranted) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center' }]}>
-        <View style={styles.promptBox}>
-          <Ionicons name="location-outline" size={60} color={THEME.textLight} />
-          <Text style={styles.promptTitle}>CẦN QUYỀN VỊ TRÍ</Text>
-          <Text style={{color: THEME.textSub, textAlign: 'center', marginBottom: 20}}>Ứng dụng cần biết vị trí của bạn để dự báo thời tiết chuẩn xác nhất.</Text>
-          <TouchableOpacity style={styles.fetchButton} onPress={requestPermissionAndFetch}>
-            <Text style={styles.fetchButtonText}>CHO PHÉP VỊ TRÍ</Text>
-          </TouchableOpacity>
-          {errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
-        </View>
-      </View>
-    );
-  }
-
-  // Nếu không có dữ liệu hợp lệ (bị lỗi API hoặc chưa lấy được)
+  // Nếu không có dữ liệu (Chưa bấm cập nhật, hoặc lỗi)
   if (!weatherData || !weatherData.current || !weatherData.daily) {
     return (
       <View style={[styles.container, { justifyContent: 'center' }]}>
         <View style={styles.promptBox}>
-          <Ionicons name="cloud-download-outline" size={60} color={THEME.textLight} />
-          <Text style={styles.promptTitle}>KHÔNG LẤY ĐƯỢC DỮ LIỆU</Text>
-          <TouchableOpacity style={styles.fetchButton} onPress={() => { Haptics.impactAsync(); executeWeatherFetch(); }}>
-            <Text style={styles.fetchButtonText}>THỬ LẠI</Text>
+          <Ionicons name="partly-sunny-outline" size={60} color={THEME.textLight} />
+          <Text style={styles.promptTitle}>THÔNG TIN THỜI TIẾT</Text>
+          <Text style={{color: THEME.textSub, textAlign: 'center', marginBottom: 20}}>Xem thời tiết khu vực {city} trong 5 ngày tới.</Text>
+          <TouchableOpacity style={styles.fetchButton} onPress={executeWeatherFetch}>
+            <Text style={styles.fetchButtonText}>CẬP NHẬT NGAY</Text>
           </TouchableOpacity>
           {errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
         </View>
@@ -175,7 +115,6 @@ export default function WeatherScreen() {
 
   const renderForecast = () => {
     let days = [];
-    // Hiển thị 5 ngày tới
     for(let i=0; i<5; i++) {
       if(!daily.time[i]) continue;
       const dateStr = daily.time[i];
@@ -208,7 +147,6 @@ export default function WeatherScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{padding: 15}}>
-      
       <View style={styles.card}>
         <Text style={styles.location}>{city}</Text>
         <Text style={styles.currentTime}>{timeStr}</Text>
@@ -271,51 +209,41 @@ export default function WeatherScreen() {
         </ScrollView>
       </View>
 
-      <TouchableOpacity style={styles.refreshBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); executeWeatherFetch(); }}>
+      <TouchableOpacity style={styles.refreshBtn} onPress={executeWeatherFetch}>
         <Ionicons name="refresh" size={20} color={THEME.textLight} />
         <Text style={styles.refreshText}>Làm mới</Text>
       </TouchableOpacity>
-      
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: THEME.bg },
-  
-  // Prompt UI
   promptBox: { backgroundColor: THEME.card, margin: 20, padding: 30, borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: THEME.border },
-  promptTitle: { fontSize: 18, fontWeight: 'bold', color: THEME.textLight, marginTop: 15, marginBottom: 20 },
+  promptTitle: { fontSize: 18, fontWeight: 'bold', color: THEME.textLight, marginTop: 15, marginBottom: 10 },
   fetchButton: { backgroundColor: THEME.accentBlue, paddingHorizontal: 30, paddingVertical: 12, borderRadius: 6 },
   fetchButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-  errorText: { color: '#E74C3C', marginTop: 15 },
-  
-  // Weather UI
+  errorText: { color: '#E74C3C', marginTop: 15, textAlign: 'center' },
   card: { backgroundColor: THEME.card, borderRadius: 8, padding: 15, marginBottom: 15, borderWidth: 1, borderColor: THEME.border },
   location: { fontSize: 20, fontWeight: 'bold', color: THEME.textLight, textAlign: 'center', letterSpacing: 1 },
   currentTime: { fontSize: 12, color: THEME.textSub, textAlign: 'center', fontStyle: 'italic', marginTop: 4 },
-  
   mainInfo: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginVertical: 20 },
   mainIconBox: { backgroundColor: THEME.header, padding: 15, borderRadius: 50, borderWidth: 1, borderColor: THEME.border, marginRight: 20 },
   temp: { fontSize: 50, fontWeight: '300', color: THEME.textLight, includeFontPadding: false, lineHeight: 60 },
   desc: { fontSize: 14, fontWeight: '600', color: THEME.accentBlue },
-  
   detailsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   detailCard: { width: '48%', backgroundColor: THEME.header, borderRadius: 6, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: THEME.border },
   detailHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
   detailLabel: { fontSize: 11, color: THEME.textSub },
   detailValue: { fontSize: 16, fontWeight: 'bold', color: THEME.textLight, marginLeft: 20 },
-  
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
   sectionTitle: { fontSize: 13, fontWeight: 'bold', color: THEME.textLight },
-  
   forecastDay: { backgroundColor: THEME.header, borderRadius: 8, paddingVertical: 12, paddingHorizontal: 10, marginRight: 10, alignItems: 'center', borderWidth: 1, borderColor: THEME.border, minWidth: 65 },
   fcDayName: { fontSize: 12, fontWeight: 'bold', color: THEME.textLight, marginBottom: 2 },
   fcSolarDate: { fontSize: 10, color: THEME.textSub },
   fcLunarDate: { fontSize: 9, color: '#E74C3C', fontStyle: 'italic', marginTop: 2, fontWeight: 'bold' },
   fcTemp: { fontSize: 14, fontWeight: 'bold', color: THEME.accentBlue, marginBottom: 2 },
   fcMinMax: { fontSize: 9, color: THEME.textSub, fontWeight: 'bold' },
-
   refreshBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: THEME.card, padding: 12, borderRadius: 8, borderWidth: 1, borderColor: THEME.border, marginBottom: 30 },
   refreshText: { color: THEME.textLight, fontWeight: 'bold', marginLeft: 8 }
 });

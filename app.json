@@ -26,10 +26,7 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "Cho phép ứng dụng truy cập thư viện ảnh để bạn có thể tải hình ảnh lên hệ thống.",
-        "NSCameraUsageDescription": "Cho phép ứng dụng sử dụng máy ảnh để chụp và tải ảnh lên hệ thống.",
-        "NSLocationWhenInUseUsageDescription": "Ứng dụng cần quyền vị trí để hiển thị thời tiết tại khu vực của bạn.",
-        "NSLocationAlwaysUsageDescription": "Ứng dụng cần quyền vị trí để hiển thị thời tiết tại khu vực của bạn.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Ứng dụng cần quyền vị trí để hiển thị thời tiết tại khu vực của bạn."
+        "NSCameraUsageDescription": "Cho phép ứng dụng sử dụng máy ảnh để chụp và tải ảnh lên hệ thống."
       }
     },
     "android": {
@@ -42,6 +39,7 @@
     "web": {
       "favicon": "./assets/Logo.png"
     },
+    "plugins": [],
     "extra": {
       "eas": {
         "projectId": "cd875efb-b1cf-4647-b55a-1fbfeba39600"
