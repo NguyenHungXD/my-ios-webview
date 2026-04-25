@@ -14,7 +14,18 @@ import WebViewScreen from './src/screens/WebViewScreen';
 import ManagePagesScreen from './src/screens/ManagePagesScreen';
 import TaskScreen from './src/screens/TaskScreen';
 
-// --- KHÔNG ĐƯỢC DÙNG Alert TRONG GLOBAL ERROR HANDLER VÌ SẼ GÂY CRASH NATIVE ---
+// --- BỘ BẮT LỖI TOÀN CỤC (GLOBAL ERROR HANDLER) ---
+if (!__DEV__) {
+  const defaultErrorHandler = global.ErrorUtils.getGlobalHandler();
+  global.ErrorUtils.setGlobalHandler((error, isFatal) => {
+    Alert.alert(
+      'Lỗi nghiêm trọng (JS Crash)',
+      `Mã lỗi: ${error.message}\nBạn hãy chụp màn hình này gửi lại cho lập trình viên.`,
+      [{ text: 'OK' }]
+    );
+  });
+}
+
 const Tab = createBottomTabNavigator();
 const THEME_COLOR = '#2E8B57'; // Màu xanh lá cây chuyên nghiệp
 

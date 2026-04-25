@@ -12,7 +12,14 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Cho phép ứng dụng lấy vị trí của bạn để hiển thị chính xác Thời Tiết tại khu vực bạn đang đứng."
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nguyenhungxd95.IOS",
@@ -32,7 +39,6 @@
     "web": {
       "favicon": "./assets/Logo.png"
     },
-    "plugins": [],
     "extra": {
       "eas": {
         "projectId": "cd875efb-b1cf-4647-b55a-1fbfeba39600"

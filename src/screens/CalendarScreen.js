@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 const amlich = require('amlich');
 
@@ -75,15 +76,18 @@ export default function CalendarScreen() {
   };
 
   const handlePrevMonth = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
 
   const handleNextMonth = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
   const handleDayPress = (date) => {
     if (!date) return;
+    Haptics.selectionAsync();
     setSelectedDate(date);
   };
 

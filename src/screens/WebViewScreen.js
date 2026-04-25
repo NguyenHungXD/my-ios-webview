@@ -1,6 +1,8 @@
-import React, { useState, useRef, useContext } from 'react';
-import { View, StyleSheet, Linking, TouchableOpacity, Text } from 'react-native';
+import React, { useState, useRef, useEffect, useContext } from 'react';
+import { View, StyleSheet, Linking, TouchableOpacity, Text, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
+import * as Network from 'expo-network';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { MenuContext } from '../../App';
 
@@ -28,6 +30,13 @@ export default function WebViewScreen({ navigation }) {
   const [canGoForward, setCanGoForward] = useState(false);
   const [currentDisplayUrl, setCurrentDisplayUrl] = useState(activeUrl);
 
+  const checkNetwork = async () => {
+    const networkState = await Network.getNetworkStateAsync();
+    setIsOffline(!networkState.isConnected);
+  };
+
+  useEffect(() => { checkNetwork(); }, [activeUrl]);
+
   const onNavigationStateChange = (navState) => {
     setCanGoBack(navState.canGoBack);
     setCanGoForward(navState.canGoForward);
@@ -49,19 +58,29 @@ export default function WebViewScreen({ navigation }) {
   };
 
   const handleBack = () => {
-    if (canGoBack && webviewRef.current) webviewRef.current.goBack();
+    if (canGoBack && webviewRef.current) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      webviewRef.current.goBack();
+    }
   };
 
   const handleForward = () => {
-    if (canGoForward && webviewRef.current) webviewRef.current.goForward();
+    if (canGoForward && webviewRef.current) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      webviewRef.current.goForward();
+    }
   };
 
   const handleReload = () => {
-    if (webviewRef.current) webviewRef.current.reload();
+    if (webviewRef.current) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      webviewRef.current.reload();
+    }
   };
 
   const handleHome = () => {
     if (webviewRef.current) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       webviewRef.current.injectJavaScript(`window.location.href = '${activeUrl}'; true;`);
     }
   };

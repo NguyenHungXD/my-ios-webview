@@ -2,9 +2,6 @@ name: Build Unsigned iOS IPA
 
 on:
   workflow_dispatch: # Cho phép tự bấm nút chạy trên Github
-  push:
-    branches:
-      - main
 
 jobs:
   build-ios:

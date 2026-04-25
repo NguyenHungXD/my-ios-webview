@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_KEY = 'AIzaSyB4weed8y6JTiLcUG-8Adz2CJqC-SKMUjE';
@@ -98,6 +99,7 @@ export default function TaskScreen() {
       });
 
       setTasks(grouped);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch(err) {
       setErrorMsg('Lỗi tải dữ liệu: ' + err.message);
     } finally {
@@ -134,6 +136,7 @@ export default function TaskScreen() {
       
       setNewTaskName('');
       setShowAddForm(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       fetchTasks();
       Alert.alert('Thành công', 'Do API Key của Sheet không hỗ trợ ghi, dữ liệu đã được lưu cục bộ trên máy của bạn!');
     } catch(e) {
@@ -144,6 +147,7 @@ export default function TaskScreen() {
   const clearLocalTasks = async () => {
     await AsyncStorage.removeItem('LOCAL_TASKS');
     fetchTasks();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   };
 
   const renderItem = ({ item }) => {
