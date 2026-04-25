@@ -99,7 +99,6 @@ export default function TaskScreen() {
       });
 
       setTasks(grouped);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch(err) {
       setErrorMsg('Lỗi tải dữ liệu: ' + err.message);
     } finally {

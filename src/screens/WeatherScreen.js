@@ -23,12 +23,68 @@ const THEME = {
 export default function WeatherScreen() {
   const [weatherData, setWeatherData] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [city, setCity] = useState('VỊ TRÍ CỦA BẠN');
+  const [permissionGranted, setPermissionGranted] = useState(true);
 
   useEffect(() => {
-    fetchWeather();
+    checkPermissionAndFetch();
   }, []);
+
+  const checkPermissionAndFetch = async () => {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status === 'granted') {
+        setPermissionGranted(true);
+        executeWeatherFetch(); // Tự động tải nhưng không xin quyền
+      } else {
+        setPermissionGranted(false);
+      }
+    } catch(e) {
+      setPermissionGranted(false);
+    }
+  };
+
+  const requestPermissionAndFetch = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMsg('Bạn đã từ chối quyền Vị trí. Hãy cấp lại trong Cài đặt iOS.');
+        setPermissionGranted(false);
+        return;
+      }
+      setPermissionGranted(true);
+      executeWeatherFetch();
+    } catch(e) {
+      setErrorMsg('Lỗi xin quyền: ' + e.message);
+    }
+  };
+
+  const executeWeatherFetch = async () => {
+    setIsLoading(true);
+    setErrorMsg(null);
+    try {
+      let loc = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = loc.coords;
+
+      try {
+        let geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (geocode && geocode.length > 0) {
+          setCity((geocode[0].subregion || geocode[0].city || geocode[0].region || 'VỊ TRÍ CỦA BẠN').toUpperCase());
+        }
+      } catch(e) {}
+
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      setWeatherData(data);
+    } catch (error) {
+      setErrorMsg('Lỗi kết nối. Vui lòng kiểm tra mạng.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getDayName = (dateStr) => {
     const d = new Date(dateStr);
@@ -55,41 +111,7 @@ export default function WeatherScreen() {
     return { isSat: d.getDay() === 6, isSun: d.getDay() === 0 };
   };
 
-  const fetchWeather = async () => {
-    setIsLoading(true);
-    setErrorMsg(null);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Bạn chưa cấp quyền Vị trí.');
-        setIsLoading(false); return;
-      }
-
-      let loc = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = loc.coords;
-
-      // Lấy tên thành phố
-      try {
-        let geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
-        if (geocode && geocode.length > 0) {
-          setCity((geocode[0].subregion || geocode[0].city || geocode[0].region || 'VỊ TRÍ CỦA BẠN').toUpperCase());
-        }
-      } catch(e) {}
-
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
-      
-      const response = await fetch(url);
-      const data = await response.json();
-      setWeatherData(data);
-    } catch (error) {
-      setErrorMsg('Lỗi kết nối. Vui lòng kiểm tra mạng.');
-    } finally {
-      setIsLoading(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-  };
 
   const getIcon = (code) => {
     if (code >= 1 && code <= 3) return "partly-sunny";
@@ -116,6 +138,22 @@ export default function WeatherScreen() {
     );
   }
 
+  if (!permissionGranted) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center' }]}>
+        <View style={styles.promptBox}>
+          <Ionicons name="location-outline" size={60} color={THEME.textLight} />
+          <Text style={styles.promptTitle}>CẦN QUYỀN VỊ TRÍ</Text>
+          <Text style={{color: THEME.textSub, textAlign: 'center', marginBottom: 20}}>Ứng dụng cần biết vị trí của bạn để dự báo thời tiết chuẩn xác nhất.</Text>
+          <TouchableOpacity style={styles.fetchButton} onPress={requestPermissionAndFetch}>
+            <Text style={styles.fetchButtonText}>CHO PHÉP VỊ TRÍ</Text>
+          </TouchableOpacity>
+          {errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
+        </View>
+      </View>
+    );
+  }
+
   // Nếu không có dữ liệu hợp lệ (bị lỗi API hoặc chưa lấy được)
   if (!weatherData || !weatherData.current || !weatherData.daily) {
     return (
@@ -123,7 +161,7 @@ export default function WeatherScreen() {
         <View style={styles.promptBox}>
           <Ionicons name="cloud-download-outline" size={60} color={THEME.textLight} />
           <Text style={styles.promptTitle}>KHÔNG LẤY ĐƯỢC DỮ LIỆU</Text>
-          <TouchableOpacity style={styles.fetchButton} onPress={fetchWeather}>
+          <TouchableOpacity style={styles.fetchButton} onPress={() => { Haptics.impactAsync(); executeWeatherFetch(); }}>
             <Text style={styles.fetchButtonText}>THỬ LẠI</Text>
           </TouchableOpacity>
           {errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
@@ -233,7 +271,7 @@ export default function WeatherScreen() {
         </ScrollView>
       </View>
 
-      <TouchableOpacity style={styles.refreshBtn} onPress={fetchWeather}>
+      <TouchableOpacity style={styles.refreshBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); executeWeatherFetch(); }}>
         <Ionicons name="refresh" size={20} color={THEME.textLight} />
         <Text style={styles.refreshText}>Làm mới</Text>
       </TouchableOpacity>
