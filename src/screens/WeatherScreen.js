@@ -107,7 +107,17 @@ export default function WeatherScreen() {
     return "Bầu trời quang đãng";
   };
 
-  if (!weatherData && !isLoading) {
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={THEME.accentBlue} />
+        <Text style={{color: THEME.textSub, marginTop: 15, fontStyle: 'italic'}}>Đang kết nối vệ tinh...</Text>
+      </View>
+    );
+  }
+
+  // Nếu không có dữ liệu hợp lệ (bị lỗi API hoặc chưa lấy được)
+  if (!weatherData || !weatherData.current || !weatherData.daily) {
     return (
       <View style={[styles.container, { justifyContent: 'center' }]}>
         <View style={styles.promptBox}>
@@ -118,15 +128,6 @@ export default function WeatherScreen() {
           </TouchableOpacity>
           {errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
         </View>
-      </View>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={THEME.accentBlue} />
-        <Text style={{color: THEME.textSub, marginTop: 15, fontStyle: 'italic'}}>Đang kết nối vệ tinh...</Text>
       </View>
     );
   }
