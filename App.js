@@ -102,39 +102,75 @@ export default function App() {
           <Tab.Navigator
             initialRouteName="Thời Tiết"
             screenOptions={{
-              headerStyle: { backgroundColor: THEME_COLOR },
-              headerTintColor: '#fff',
+              headerStyle: { backgroundColor: '#1A202C' }, // Dark header
+              headerTintColor: '#E2E8F0',
               headerTitleStyle: { fontWeight: 'bold' },
-              tabBarActiveTintColor: THEME_COLOR,
-              tabBarInactiveTintColor: '#888',
+              tabBarShowLabel: false,
+              tabBarActiveTintColor: '#FFD700',
+              tabBarInactiveTintColor: '#64748B',
+              tabBarStyle: {
+                position: 'absolute',
+                bottom: 25,
+                left: 20,
+                right: 20,
+                elevation: 10,
+                backgroundColor: '#1E293B',
+                borderRadius: 25,
+                height: 70,
+                borderTopWidth: 0,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.3,
+                shadowRadius: 10,
+              }
             }}
           >
             <Tab.Screen 
               name="Thời Tiết" 
               component={WeatherScreen} 
               options={{
-                tabBarIcon: ({ color }) => <Ionicons name="partly-sunny-outline" size={24} color={color} />,
+                tabBarIcon: ({ color, focused }) => (
+                  <View style={{ alignItems: 'center', justifyContent: 'center', top: 5 }}>
+                    <Ionicons name={focused ? "partly-sunny" : "partly-sunny-outline"} size={focused ? 28 : 24} color={color} />
+                    {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: color, marginTop: 4 }} />}
+                  </View>
+                )
               }}
             />
             <Tab.Screen 
               name="Công Việc" 
               component={TaskScreen} 
               options={{
-                tabBarIcon: ({ color }) => <Ionicons name="clipboard-outline" size={24} color={color} />,
+                tabBarIcon: ({ color, focused }) => (
+                  <View style={{ alignItems: 'center', justifyContent: 'center', top: 5 }}>
+                    <Ionicons name={focused ? "clipboard" : "clipboard-outline"} size={focused ? 28 : 24} color={color} />
+                    {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: color, marginTop: 4 }} />}
+                  </View>
+                )
               }}
             />
             <Tab.Screen 
               name="Duyệt Web" 
               component={WebViewScreen} 
               options={{
-                tabBarIcon: ({ color }) => <Ionicons name="globe-outline" size={24} color={color} />,
+                tabBarIcon: ({ color, focused }) => (
+                  <View style={{ alignItems: 'center', justifyContent: 'center', top: 5 }}>
+                    <Ionicons name={focused ? "globe" : "globe-outline"} size={focused ? 28 : 24} color={color} />
+                    {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: color, marginTop: 4 }} />}
+                  </View>
+                )
               }}
             />
             <Tab.Screen 
               name="Lịch Vạn Niên" 
               component={CalendarScreen} 
               options={{
-                tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={24} color={color} />,
+                tabBarIcon: ({ color, focused }) => (
+                  <View style={{ alignItems: 'center', justifyContent: 'center', top: 5 }}>
+                    <Ionicons name={focused ? "calendar" : "calendar-outline"} size={focused ? 28 : 24} color={color} />
+                    {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: color, marginTop: 4 }} />}
+                  </View>
+                )
               }}
             />
             <Tab.Screen 
@@ -142,7 +178,12 @@ export default function App() {
               component={ManagePagesScreen} 
               options={{
                 title: 'Quản Lý Trang',
-                tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={24} color={color} />,
+                tabBarIcon: ({ color, focused }) => (
+                  <View style={{ alignItems: 'center', justifyContent: 'center', top: 5 }}>
+                    <Ionicons name={focused ? "settings" : "settings-outline"} size={focused ? 28 : 24} color={color} />
+                    {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: color, marginTop: 4 }} />}
+                  </View>
+                )
               }}
             />
           </Tab.Navigator>
