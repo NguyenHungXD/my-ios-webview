@@ -1,5 +1,5 @@
 import React, { useState, useEffect, createContext, useContext, Component } from 'react';
-import { StyleSheet, View, Text, Image, Alert, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, Image, Alert, TouchableOpacity, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -30,10 +30,17 @@ class ErrorBoundary extends Component {
   static getDerivedStateFromError(error) { return { hasError: true, error }; }
   render() {
     if (this.state.hasError) {
+      const stack = this.state.error?.stack || '';
+      // Parse first line of stack trace to get file:line:column
+      const firstStackLine = stack.split('\n')[1] || '';
+      const locationMatch = firstStackLine.match(/\((.+):(\d+):(\d+)\)$/);
+      const location = locationMatch ? `${locationMatch[1]}:${locationMatch[2]}:${locationMatch[3]}` : 'unknown location';
+
       return (
         <View style={{ flex: 1, backgroundColor: '#121214', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
           <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#E74C3C', marginBottom: 12 }}>⚠ Ứng dụng gặp lỗi</Text>
-          <Text style={{ fontSize: 14, color: '#A0A0A0', textAlign: 'center', marginBottom: 24, lineHeight: 20 }}>{this.state.error?.message || 'Không thể hiển thị nội dung.'}</Text>
+          <Text style={{ fontSize: 14, color: '#A0A0A0', textAlign: 'center', marginBottom: 8, lineHeight: 20 }}>{this.state.error?.message || 'Không thể hiển thị nội dung.'}</Text>
+          <Text style={{ fontSize: 12, color: '#FCA5A5', textAlign: 'center', marginBottom: 24, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>📍 {location}</Text>
           <TouchableOpacity onPress={() => { this.setState({ hasError: false, error: null }); }} style={{ backgroundColor: '#D4AF37', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 12 }}>
             <Text style={{ color: '#121214', fontWeight: 'bold' }}>THỬ LẠI</Text>
           </TouchableOpacity>
