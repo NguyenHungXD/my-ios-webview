@@ -7,9 +7,10 @@ import * as Network from 'expo-network';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { MenuContext } from '../../App';
+import { THEME } from '../theme';
 
-const THEME_COLOR = '#121214'; // Dark
-const ACCENT_COLOR = '#D4AF37'; // Gold
+const THEME_COLOR = THEME.bg;
+const ACCENT_COLOR = THEME.accentGold;
 
 const OfflineScreen = ({ onRetry }) => (
   <View style={styles.offlineContainer}>

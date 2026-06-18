@@ -6,24 +6,19 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { THEME as BASE_THEME } from '../theme';
 const amlich = require('amlich');
 
 const SPREADSHEET_ID = '1Od2c46Msy7FraALvf4YWyvRgfHxhfBHpGr0djUQdnq8';
 
 const THEME = {
-  bg: '#2C333A',
-  card: '#3B4453',
-  header: '#1A202C',
-  border: '#4A5568',
-  textLight: '#E2E8F0',
-  textSub: '#A0AEC0',
+  ...BASE_THEME,
   accentBlue: '#3498DB',
   satBg: '#1B4332',
   satBorder: '#27AE60',
   sunBg: '#7F1D1D',
   sunBorder: '#E74C3C',
   badgeRed: '#E74C3C',
-  modalBg: 'rgba(15, 23, 42, 0.95)' // Kính mờ siêu cấp
 };
 
 export default function WeatherScreen() {
@@ -45,8 +40,7 @@ export default function WeatherScreen() {
   const slideAnims = React.useRef([...Array(5)].map(() => new Animated.Value(50))).current;
 
   useEffect(() => {
-    fetchWeather();
-    fetchTasksFromGoogle();
+    Promise.all([fetchWeather(), fetchTasksFromGoogle()]);
   }, []);
 
   useEffect(() => {

@@ -6,21 +6,12 @@ import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 const amlich = require('amlich');
+import { THEME as BASE_THEME } from '../theme';
 
 const THEME = {
-  bg: '#121214',
-  card: '#1C1C20',
-  header: '#0D0D0F',
-  textLight: '#F5F5F5',
-  textSub: '#A0A0A0',
-  accentGold: '#D4AF37', 
-  accentRed: '#C0392B',  
-  accentGreen: '#27AE60',
-  accentBlue: '#3498DB',
-  border: '#2C2C32',
+  ...BASE_THEME,
   weekendText: '#E74C3C',
   moonColor: '#F39C12',
-  modalBg: 'rgba(10, 10, 12, 0.95)'
 };
 
 const CAN_ARRAY = ['Giáp', 'Ất', 'Bính', 'Đinh', 'Mậu', 'Kỷ', 'Canh', 'Tân', 'Nhâm', 'Quý'];
@@ -214,8 +205,14 @@ export default function CalendarScreen() {
     if(!inpName || !inpDOB) return Alert.alert('Lỗi', 'Vui lòng nhập tên và ngày sinh');
     const parts = inpDOB.split(/[-/]/);
     if(parts.length !== 3) return Alert.alert('Lỗi', 'Ngày sinh phải có dạng DD-MM-YYYY');
-    
-    const d = parseInt(parts[0]), m = parseInt(parts[1]), y = parseInt(parts[2]);
+
+    const d = parseInt(parts[0], 10), m = parseInt(parts[1], 10), y = parseInt(parts[2], 10);
+    if (isNaN(d) || isNaN(m) || isNaN(y)) return Alert.alert('Lỗi', 'Ngày sinh không hợp lệ.');
+    if (y < 1900 || y > 2100) return Alert.alert('Lỗi', 'Năm sinh phải từ 1900 đến 2100.');
+    if (m < 1 || m > 12) return Alert.alert('Lỗi', 'Tháng sinh phải từ 1 đến 12.');
+    if (d < 1 || d > 31) return Alert.alert('Lỗi', 'Ngày sinh phải từ 1 đến 31.');
+    const maxDay = new Date(y, m, 0).getDate();
+    if (d > maxDay) return Alert.alert('Lỗi', `Tháng ${m} chỉ có ${maxDay} ngày.`);
     try {
       const lunar = amlich.convertSolar2Lunar(d, m, y, 7);
       const yearCan = CAN_ARRAY[(lunar[2] + 6) % 10];
@@ -368,7 +365,7 @@ export default function CalendarScreen() {
       </ScrollView>
 
       {/* Bottom Sheet Chi Tiết Ngày */}
-      <Modal visible={detailModalVisible} transparent animationType="slide">
+      <Modal visible={detailModalVisible} transparent animationType="slide" onRequestClose={() => setDetailModalVisible(false)}>
         <TouchableOpacity style={{flex: 1}} activeOpacity={1} onPress={() => setDetailModalVisible(false)} />
         <BlurView intensity={90} tint="dark" style={styles.bottomSheet}>
           <View style={styles.bottomSheetHandle} />

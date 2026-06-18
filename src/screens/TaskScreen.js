@@ -9,20 +9,12 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { THEME as BASE_THEME } from '../theme';
 
 const SPREADSHEET_ID = '1Od2c46Msy7FraALvf4YWyvRgfHxhfBHpGr0djUQdnq8';
 
 const THEME = {
-  bg: '#1A1A1D',
-  card: '#2D2D34',
-  header: '#121214',
-  border: '#3E3E42',
-  textLight: '#F5F5F5',
-  textSub: '#A0A0A0',
-  accentBlue: '#3498DB',
-  accentRed: '#E74C3C',
-  accentGreen: '#2ECC71',
-  accentYellow: '#F1C40F',
+  ...BASE_THEME,
   pulseColor: '#00FF00',
   todayBg: '#FF5722'
 };

@@ -9,8 +9,9 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { MenuContext } from '../../App';
+import { THEME } from '../theme';
 
-const THEME_COLOR = '#2E8B57';
+const THEME_COLOR = THEME.accentGreen;
 
 export default function ManagePagesScreen({ navigation }) {
   const { menuItems, setMenuItems, activeUrl, setActiveUrl } = useContext(MenuContext);
@@ -105,18 +106,18 @@ export default function ManagePagesScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: THEME.bg },
   headerBox: { padding: 20, paddingBottom: 10 },
-  headerSubtitle: { color: '#666', fontSize: 14, fontStyle: 'italic' },
-  manageItem: { flexDirection: 'row', backgroundColor: '#F9F9F9', padding: 15, borderRadius: 10, marginBottom: 12, alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#eee' },
+  headerSubtitle: { color: THEME.textSub, fontSize: 14, fontStyle: 'italic' },
+  manageItem: { flexDirection: 'row', backgroundColor: '#2D2D34', padding: 15, borderRadius: 10, marginBottom: 12, alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: THEME.border },
   activeItem: { backgroundColor: THEME_COLOR, borderColor: THEME_COLOR },
   manageItemInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  manageItemName: { fontSize: 16, fontWeight: 'bold', color: '#333' },
-  manageItemUrl: { fontSize: 13, color: '#888', marginTop: 4 },
+  manageItemName: { fontSize: 16, fontWeight: 'bold', color: THEME.textLight },
+  manageItemUrl: { fontSize: 13, color: THEME.textSub, marginTop: 4 },
   deleteBtn: { padding: 10 },
-  manageInputContainer: { padding: 20, paddingBottom: 130, backgroundColor: 'rgba(255,255,255,0.7)', borderTopWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 10 },
+  manageInputContainer: { padding: 20, paddingBottom: 130, backgroundColor: 'rgba(28, 28, 32, 0.85)', borderTopWidth: 1, borderColor: THEME.border, shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 10 },
   manageInputTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: THEME_COLOR },
-  input: { backgroundColor: '#F5F5F5', borderRadius: 8, padding: 12, fontSize: 16, marginBottom: 10, borderWidth: 1, borderColor: '#ddd' },
+  input: { backgroundColor: THEME.bg, borderRadius: 8, padding: 12, fontSize: 16, marginBottom: 10, borderWidth: 1, borderColor: THEME.border, color: THEME.textLight },
   addButton: { backgroundColor: THEME_COLOR, padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 5 },
-  addButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  addButtonText: { color: THEME.textLight, fontSize: 16, fontWeight: 'bold' },
 });
