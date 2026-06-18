@@ -19,7 +19,15 @@ if (!__DEV__) {
   if (global.ErrorUtils && typeof global.ErrorUtils.setGlobalHandler === 'function') {
     const defaultHandler = global.ErrorUtils.getGlobalHandler ? global.ErrorUtils.getGlobalHandler() : null;
     global.ErrorUtils.setGlobalHandler((error, isFatal) => {
-      Alert.alert('Lỗi nghiêm trọng (JS Crash)', `Mã lỗi: ${error.message}\nBạn hãy chụp màn hình này gửi lại cho lập trình viên.`, [{ text: 'OK' }]);
+      const stack = error?.stack || '';
+      console.error('GLOBAL JS ERROR:', error);
+      console.error('STACK TRACE:\n' + stack);
+      const shortStack = stack.slice(0, 400);
+      Alert.alert(
+        'Lỗi nghiêm trọng (JS Crash)',
+        `Mã lỗi: ${error.message}\n\nStack (400 ký tự đầu):\n${shortStack}\n\nBạn hãy chụp màn hình này gửi lại cho lập trình viên.`,
+        [{ text: 'OK' }]
+      );
     });
   }
 }
