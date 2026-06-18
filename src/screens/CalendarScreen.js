@@ -21,7 +21,7 @@ import {
   getSaoHan, getSimpleMenh, MENH_DESC,
   getCungMenh, getWesternZodiac, analyzeNameElements,
   getPersonalYearNumber, PERSONAL_YEAR_INFO,
-  getMenhDayAdvice, analyzeElementBalance
+  getMenhDayAdvice, getMenhDayScore, analyzeElementBalance
 } from '../fengshui';
 
 import { tinhQueTheoAmLich, tinhQueTheoJD, gieoQue3DongXu, BAT_QUAI } from '../kinhDich';
@@ -378,7 +378,7 @@ export default function CalendarScreen() {
               <Text style={[styles.tabBtnText, activeTab === idx && styles.tabBtnTextActive]}>{tab}</Text>
             </TouchableOpacity>
           ))}
-          <Animated.View style={[styles.tabIndicator, { width: tabW - 12, transform: [{ translateX: Animated.divide(Animated.multiply(tabAnim, tabW), 1) }] }]} />
+          <Animated.View style={[styles.tabIndicator, { width: tabW - 12, transform: [{ translateX: Animated.multiply(tabAnim, tabW) }] }]} />
         </BlurView>
       </View>
     );
