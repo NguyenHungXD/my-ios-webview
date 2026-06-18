@@ -309,7 +309,14 @@ export const getTietKhi = (solarMonth, solarDay) => {
 };
 
 // ==================== DAY SCORE (đánh giá ngày tốt/xấu) ====================
-export const getDayScore = (truc, userChi, dayChi) => {
+// Thập Thần scoring: Cát +2, Hung -1, Trung tính 0
+const THAP_THAN_SCORE = {
+  'Tỷ Kiên': 2, 'Kiếp Tài': -1, 'Thực Thần': 2, 'Thương Quan': -1,
+  'Thiên Tài': 0, 'Chính Tài': 2, 'Thất Sát': -1, 'Chính Quan': 2,
+  'Thiên Ấn': 0, 'Chính Ấn': 2
+};
+
+export const getDayScore = (truc, userChi, dayChi, thapThanKey, isHoangDao) => {
   let score = 0;
   const trucScores = { 'Kiến': 2, 'Trừ': 1, 'Mãn': 2, 'Bình': 0, 'Định': 2, 'Chấp': 0, 'Phá': -2, 'Nguy': -1, 'Thành': 3, 'Thâu': 1, 'Khai': 2, 'Bế': -1 };
   score += trucScores[truc] || 0;
@@ -318,5 +325,30 @@ export const getDayScore = (truc, userChi, dayChi) => {
   for (const group of TAM_HOP) {
     if (group.includes(userChi) && group.includes(dayChi) && userChi !== dayChi) { score += 1; break; }
   }
+  if (thapThanKey && THAP_THAN_SCORE[thapThanKey] !== undefined) score += THAP_THAN_SCORE[thapThanKey];
+  if (isHoangDao) score += 2;
   return score;
+};
+
+// ==================== SAO HẠN NĂM ====================
+// 9 sao hạn chiếu mệnh theo tuổi
+export const SAO_HAN_INFO = {
+  1: { name: 'Thái Dương', element: 'Hỏa', meaning: 'Vạn sự hanh thông. Tốt đẹp, có quý nhân giúp đỡ.', color: '#FF6B35', remedy: 'Cúng sao Thái Dương ngày 27 âm lịch hàng tháng. Hướng Tây.' },
+  2: { name: 'Thái Âm', element: 'Thủy', meaning: 'Phúc lộc dồi dào, may mắn về tài chính.', color: '#3498DB', remedy: 'Cúng sao Thái Âm ngày 26 âm lịch. Hướng Bắc.' },
+  3: { name: 'Mộc Đức', element: 'Mộc', meaning: 'Cát lợi, công việc thuận lợi, gia đạo yên vui.', color: '#2ECC71', remedy: 'Cúng sao Mộc Đức ngày 25 âm lịch. Hướng Đông.' },
+  4: { name: 'Vân Hớn', element: 'Thổ', meaning: 'Thị phi, kiện tụng, cẩn trọng lời nói.', color: '#F1C40F', remedy: 'Cúng sao Vân Hớn ngày 24 âm lịch. Hướng Đông Bắc.' },
+  5: { name: 'Thổ Tú', element: 'Thổ', meaning: 'Công danh thăng tiến, nhưng hao tài tốn của.', color: '#E67E22', remedy: 'Cúng sao Thổ Tú ngày 23 âm lịch. Hướng Tây Nam.' },
+  6: { name: 'Thủy Diệu', element: 'Thủy', meaning: 'Tài lộc, may mắn về đường tiền bạc.', color: '#2980B9', remedy: 'Cúng sao Thủy Diệu ngày 22 âm lịch. Hướng Bắc.' },
+  7: { name: 'Bạch Hổ', element: 'Kim', meaning: 'Hung họa, tai nạn, cẩn thận xe cộ.', color: '#E74C3C', remedy: 'Cúng sao Bạch Hổ ngày 21 âm lịch. Hướng Tây.' },
+  8: { name: 'Thái Bạch', element: 'Kim', meaning: 'Điềm xấu, hao tài, thị phi. Tránh đầu tư lớn.', color: '#95A5A6', remedy: 'Cúng sao Thái Bạch ngày 20 âm lịch. Hướng Tây.' },
+  9: { name: 'La Hầu', element: 'Hỏa', meaning: 'Hung họa lớn, cẩn thận sức khỏe, pháp lý.', color: '#C0392B', remedy: 'Cúng sao La Hầu ngày 19 âm lịch. Hướng Bắc.' }
+};
+
+/**
+ * Tính sao hạn năm dựa trên năm sinh và năm hiện tại.
+ * Công thức: (namSinh + namHienTai) % 9 + 1
+ */
+export const getSaoHan = (namSinh, namHienTai) => {
+  const starNum = ((namSinh + namHienTai) % 9) + 1;
+  return { starNum, info: SAO_HAN_INFO[starNum] };
 };

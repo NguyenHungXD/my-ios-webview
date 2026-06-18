@@ -17,7 +17,8 @@ import {
   getNguHanhRelation,
   getMonthChiIdx, getMonthCanIdx,
   getHourChiIdx, getHourCanIdx,
-  getCuuTinhInfo, getTietKhi, getDayScore
+  getCuuTinhInfo, getTietKhi, getDayScore,
+  getSaoHan
 } from '../fengshui';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -249,12 +250,17 @@ export default function CalendarScreen() {
     if (!profile) return {};
     const scores = {};
     const lastDay = new Date(year, month, 0).getDate();
+    const myCanIdx = CAN_ARRAY.indexOf(profile.nhatCan);
     for (let day = 1; day <= lastDay; day++) {
       const key = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const lunar = lunarCache.getLunar(year, month, day);
       const jd = lunarCache.getJD(year, month, day);
-      const dayChi = CHI_ARRAY[(jd + 1) % 12];
-      scores[key] = getDayScore(getTruc(lunar[1], dayChi), profile.yearChi, dayChi);
+      const dayCanIdx = (jd + 9) % 10;
+      const dayChiIdx = (jd + 1) % 12;
+      const dayChi = CHI_ARRAY[dayChiIdx];
+      const isHoangDao = getGioHoangDao(dayChi).length > 0;
+      const thapThanKey = THAP_THAN_MATRIX[myCanIdx][dayCanIdx];
+      scores[key] = getDayScore(getTruc(lunar[1], dayChi), profile.yearChi, dayChi, thapThanKey, isHoangDao);
     }
     return scores;
   };
@@ -312,6 +318,17 @@ export default function CalendarScreen() {
 
       const cuuTinh = getCuuTinhInfo(lY, lD);
       const tietKhi = getTietKhi(m, d);
+      const isHoangDao = hoangDaoHours.length > 0;
+
+      // Sao hạn năm (nếu có profile)
+      let saoHan = null;
+      if (userProfile) {
+        try {
+          const dobParts = userProfile.dob.split('/');
+          const birthYear = parseInt(dobParts[2], 10);
+          saoHan = getSaoHan(birthYear, y);
+        } catch (e) {}
+      }
 
       let baziReading = null;
       if (userProfile) {
@@ -319,7 +336,7 @@ export default function CalendarScreen() {
         const thapThanKey = THAP_THAN_MATRIX[myCanIdx][dayCanIdx];
         baziReading = { thapThan: { key: thapThanKey, ...THAP_THAN_DESC[thapThanKey] }, diaChi: checkDiaChi(userProfile.yearChi, dayChi) };
       }
-      setDetailInfo({ lunarStr: `Mùng ${lD} tháng ${lM} năm ${lY}`, namCanChi: `${yearCan} ${yearChi}`, ngayCanChi: `${dayCan} ${dayChi}`, truc, isRằm: lD === 15, isMung1: lD === 1, hoangDaoHours, holiday, baziReading, tuTru, nguHanhRelations, cuuTinh, tietKhi });
+      setDetailInfo({ lunarStr: `Mùng ${lD} tháng ${lM} năm ${lY}`, namCanChi: `${yearCan} ${yearChi}`, ngayCanChi: `${dayCan} ${dayChi}`, truc, isRằm: lD === 15, isMung1: lD === 1, hoangDaoHours, holiday, baziReading, tuTru, nguHanhRelations, cuuTinh, tietKhi, isHoangDao, saoHan });
     } catch (e) { setDetailInfo(null); }
   };
 
@@ -489,6 +506,27 @@ export default function CalendarScreen() {
               <Text style={styles.tkDesc}>{detailInfo.tietKhi.desc}</Text>
               {!detailInfo.tietKhi.exact && <Text style={[styles.tkDesc, { color: THEME.accentGold, marginTop: 2 }]}>(gần đúng ±1 ngày)</Text>}
             </View>
+          </View>
+        )}
+        {/* Sao hạn năm */}
+        {detailInfo.saoHan && (
+          <View style={[styles.ctPanel, { borderColor: (detailInfo.saoHan.info?.color || THEME.accentGold) + '50', marginTop: 10 }]}>
+            <LinearGradient colors={['rgba(200,50,50,0.08)', 'transparent']} style={StyleSheet.absoluteFillObject} borderRadius={20} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <Ionicons name="warning" size={18} color={detailInfo.saoHan.info?.color || THEME.accentGold} />
+              <Text style={{ fontSize: 12, fontWeight: '700', color: THEME.textSub, letterSpacing: 1 }}>SAO HẠN NĂM</Text>
+            </View>
+            <Text style={[styles.ctName, { color: detailInfo.saoHan.info?.color || THEME.accentGold, fontSize: 18 }]}>
+              {detailInfo.saoHan.starNum}: {detailInfo.saoHan.info?.name}
+            </Text>
+            <View style={[styles.ctElBadge, { backgroundColor: (detailInfo.saoHan.info?.color || '#888') + '25' }]}>
+              <View style={[styles.pillarElDot, { backgroundColor: detailInfo.saoHan.info?.color || '#888' }]} />
+              <Text style={[styles.ctElText, { color: detailInfo.saoHan.info?.color || THEME.textSub }]}>{detailInfo.saoHan.info?.element}</Text>
+            </View>
+            <Text style={styles.ctMeaning}>{detailInfo.saoHan.info?.meaning}</Text>
+            <Text style={[styles.ctMeaning, { marginTop: 6, fontStyle: 'italic', fontSize: 12, color: detailInfo.saoHan.info?.color }]}>
+              🙏 {detailInfo.saoHan.info?.remedy}
+            </Text>
           </View>
         )}
       </View>
