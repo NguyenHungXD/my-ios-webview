@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, Alert, Animated, LayoutAnimation, UIManager, TouchableWithoutFeedback, Modal } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, Alert, Animated, LayoutAnimation, UIManager, TouchableWithoutFeedback, Modal, RefreshControl, Share } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 
@@ -19,95 +19,59 @@ const THEME = {
   todayBg: '#FF5722'
 };
 
+const STATUS_CONFIG = {
+  'WAIT':  { icon: 'time',        color: THEME.accentYellow, label: 'Chờ' },
+  'DONE':  { icon: 'checkmark-circle', color: THEME.accentGreen,  label: 'Xong' },
+  'MISSED':{ icon: 'close-circle', color: THEME.accentRed,   label: 'Trễ' },
+  'LOCAL': { icon: 'phone-portrait', color: THEME.accentBlue,  label: 'Local' },
+};
+
 const AnimatedTaskItem = ({ t, index, isLast, onPress }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-
   const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => { Animated.spring(scaleAnim, { toValue: 0.95, useNativeDriver: true }).start(); };
-  const handlePressOut = () => { Animated.spring(scaleAnim, { toValue: 1, friction: 3, tension: 40, useNativeDriver: true }).start(); };
-
   const [isLive, setIsLive] = useState(false);
 
+  const handlePressIn = () => Animated.spring(scaleAnim, { toValue: 0.96, useNativeDriver: true }).start();
+  const handlePressOut = () => Animated.spring(scaleAnim, { toValue: 1, friction: 3, tension: 40, useNativeDriver: true }).start();
+
   useEffect(() => {
-    // Entrance Animation
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        delay: index * 100, // Staggered delay
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 500,
-        delay: index * 100,
-        useNativeDriver: true,
-      })
+      Animated.timing(fadeAnim, { toValue: 1, duration: 500, delay: index * 80, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 500, delay: index * 80, useNativeDriver: true })
     ]).start();
   }, []);
 
   useEffect(() => {
-    // Check Live status
     const checkLive = () => {
       const now = new Date();
-      const currentH = now.getHours();
-      const currentM = now.getMinutes();
-      const currentVal = currentH * 60 + currentM;
-
-      const [fH, fM] = t.fromTime.split(':').map(Number);
-      const [tH, tM] = t.toTime.split(':').map(Number);
-      const startVal = fH * 60 + fM;
-      const endVal = tH * 60 + tM;
-
-      // Check if task is today
-      const isToday = t.date.toDateString() === now.toDateString();
-
-      if (isToday && currentVal >= startVal && currentVal <= endVal) {
-        setIsLive(true);
-      } else {
-        setIsLive(false);
-      }
+      const cv = now.getHours() * 60 + now.getMinutes();
+      const [fH, fM] = (t.fromTime || '00:00').split(':').map(Number);
+      const [tH, tM] = (t.toTime || '23:59').split(':').map(Number);
+      const isToday = t.date instanceof Date && t.date.toDateString() === now.toDateString();
+      setIsLive(isToday && cv >= fH*60+fM && cv <= tH*60+tM);
     };
     checkLive();
-    const interval = setInterval(checkLive, 60000); // Check every minute
+    const interval = setInterval(checkLive, 60000);
     return () => clearInterval(interval);
   }, [t]);
 
   useEffect(() => {
     if (isLive) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.5, duration: 800, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true })
-        ])
-      ).start();
-    } else {
-      pulseAnim.setValue(1);
-    }
+      Animated.loop(Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.5, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true })
+      ])).start();
+    } else pulseAnim.setValue(1);
   }, [isLive]);
 
-  const getStatusColor = (status) => {
-    if (status === 'MISSED') return THEME.accentRed;
-    if (status === 'DONE') return THEME.accentGreen;
-    if (status === 'LOCAL') return THEME.accentBlue;
-    return THEME.accentYellow; // WAIT
-  };
-
-  const getStatusIcon = (status) => {
-    if (status === 'MISSED') return 'close-circle';
-    if (status === 'DONE') return 'checkmark-circle';
-    if (status === 'LOCAL') return 'phone-portrait';
-    return 'time';
-  };
-
-  const statusColor = getStatusColor(t.status);
+  const cfg = STATUS_CONFIG[t.status] || STATUS_CONFIG.WAIT;
+  const isOverdue = t.status === 'WAIT' && t.date < new Date(new Date().toDateString());
+  const borderColor = isLive ? THEME.pulseColor : cfg.color;
 
   return (
     <Animated.View style={[styles.timelineRow, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-      {/* Trục dọc */}
       <View style={styles.timelineAxis}>
         {isLive ? (
           <View style={styles.livePulseContainer}>
@@ -115,25 +79,25 @@ const AnimatedTaskItem = ({ t, index, isLast, onPress }) => {
             <View style={styles.livePulseCore} />
           </View>
         ) : (
-          <View style={[styles.timelineDot, {backgroundColor: statusColor}]} />
+          <View style={[styles.timelineDot, { backgroundColor: borderColor }]} />
         )}
-        {!isLast && <View style={[styles.timelineLine, {backgroundColor: THEME.border}]} />}
+        {!isLast && <View style={[styles.timelineLine, { backgroundColor: THEME.border }]} />}
       </View>
 
-      {/* Thẻ Công Việc */}
       <TouchableWithoutFeedback onPressIn={handlePressIn} onPressOut={handlePressOut} onPress={onPress}>
-        <Animated.View style={[styles.taskCard, { borderLeftColor: isLive ? THEME.pulseColor : statusColor, transform: [{scale: scaleAnim}] }, isLive && styles.liveCard]}>
-          <LinearGradient colors={['rgba(255,255,255,0.05)', 'rgba(0,0,0,0.1)']} style={StyleSheet.absoluteFillObject} borderRadius={15} />
+        <Animated.View style={[styles.taskCard, { borderLeftColor: borderColor, transform: [{ scale: scaleAnim }] }, isLive && styles.liveCard]}>
+          <LinearGradient colors={['rgba(255,255,255,0.04)', 'rgba(0,0,0,0.15)']} style={StyleSheet.absoluteFillObject} borderRadius={15} />
           <View style={styles.taskCardHeader}>
             <View style={styles.timeWrap}>
-              <Ionicons name="alarm-outline" size={14} color={THEME.textSub} style={{marginRight: 4}}/>
-              <Text style={[styles.timeText, isLive && {color: THEME.pulseColor, fontWeight: 'bold'}]}>
-                {t.fromTime} - {t.toTime}
+              <Ionicons name="alarm-outline" size={12} color={THEME.textSub} style={{ marginRight: 4 }} />
+              <Text style={[styles.timeText, isLive && { color: THEME.pulseColor, fontWeight: 'bold' }]}>
+                {t.fromTime || '--:--'} - {t.toTime || '--:--'}
               </Text>
+              {isOverdue && <View style={styles.overdueDot} />}
             </View>
-            <View style={[styles.statusBadge, {backgroundColor: statusColor + '20'}]}>
-              <Ionicons name={getStatusIcon(t.status)} size={12} color={statusColor} style={{marginRight: 4}}/>
-              <Text style={[styles.statusText, {color: statusColor}]}>{t.status}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: cfg.color + '18' }]}>
+              <Ionicons name={cfg.icon} size={11} color={cfg.color} style={{ marginRight: 3 }} />
+              <Text style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Text>
             </View>
           </View>
           <Text style={styles.taskName}>{t.job}</Text>
@@ -143,142 +107,171 @@ const AnimatedTaskItem = ({ t, index, isLast, onPress }) => {
   );
 };
 
-
 export default function TaskScreen() {
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
-
+  const [refreshing, setRefreshing] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTaskDate, setNewTaskDate] = useState('');
   const [newTaskName, setNewTaskName] = useState('');
-
   const [actionModalVisible, setActionModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
 
-  const openTaskAction = (task) => {
-    Haptics.selectionAsync();
-    setSelectedTask(task);
-    setActionModalVisible(true);
-  };
+  const fabAnim = useRef(new Animated.Value(0)).current;
+  const listRef = useRef(null);
+
+  const openTaskAction = (task) => { Haptics.selectionAsync(); setSelectedTask(task); setActionModalVisible(true); };
 
   useEffect(() => {
     fetchTasks();
     const now = new Date();
     setNewTaskDate(`${now.getDate().toString().padStart(2,'0')}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getFullYear()}`);
+    Animated.spring(fabAnim, { toValue: 1, friction: 5, tension: 40, useNativeDriver: true, delay: 500 }).start();
   }, []);
 
-  const fetchTasks = async () => {
-    setIsLoading(true);
+  const fetchTasks = useCallback(async () => {
     setErrorMsg(null);
     try {
       const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Abc`;
       const response = await fetch(url);
       const text = await response.text();
-
       const lines = text.split('\n');
       const parsedTasks = [];
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      const limitDate = new Date();
-      limitDate.setDate(today.getDate() + 7);
+      const today = new Date(); today.setHours(0,0,0,0);
+      const limitDate = new Date(); limitDate.setDate(today.getDate() + 7);
 
       for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
         const row = lines[i].split('","').map(v => v.replace(/^"|"$/g, ''));
-        const dateStr = row[0];
-        const jobStr = row[1];
+        const dateStr = row[0], jobStr = row[1];
         if (!dateStr || !jobStr) continue;
-
-        const fromH = row[2] ? row[2].padStart(2, '0') : '00';
-        const fromM = row[3] ? row[3].padStart(2, '0') : '00';
-        const toH = row[4] ? row[4].padStart(2, '0') : '00';
-        const toM = row[5] ? row[5].padStart(2, '0') : '00';
-        const status = row[6] ? row[6].toUpperCase() : 'WAIT';
-        const timeVal = parseInt(fromH) * 60 + parseInt(fromM);
+        const fromH = (row[2] || '').padStart(2, '0'), fromM = (row[3] || '').padStart(2, '0');
+        const toH = (row[4] || '').padStart(2, '0'), toM = (row[5] || '').padStart(2, '0');
+        const status = (row[6] || '').toUpperCase() || 'WAIT';
         const parts = dateStr.split(/[-/]/);
-
         if (parts.length === 3) {
           const taskDate = new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
           if (taskDate >= today && taskDate <= limitDate) {
-            parsedTasks.push({ 
-              id: `cloud_${i}`, date: taskDate, dateStr, job: jobStr,
-              fromTime: `${fromH}:${fromM}`, toTime: `${toH}:${toM}`, timeVal, status
-            });
+            parsedTasks.push({ id: `cloud_${i}`, date: taskDate, dateStr, job: jobStr, fromTime: `${fromH}:${fromM}`, toTime: `${toH}:${toM}`, timeVal: parseInt(fromH)*60+parseInt(fromM), status });
           }
         }
       }
 
       const localTasksStr = await AsyncStorage.getItem('LOCAL_TASKS');
       if (localTasksStr) {
-        const localTasks = JSON.parse(localTasksStr);
-        localTasks.forEach(t => {
+        JSON.parse(localTasksStr).forEach(t => {
           const tDate = new Date(t.timestamp);
           if (tDate >= today && tDate <= limitDate) {
-            parsedTasks.push({ 
-              id: t.id, date: tDate, dateStr: t.dateStr, job: t.job, 
-              fromTime: '00:00', toTime: '23:59', timeVal: 0, status: 'LOCAL', isLocal: true 
-            });
+            parsedTasks.push({ id: t.id, date: tDate, dateStr: t.dateStr, job: t.job, fromTime: '00:00', toTime: '23:59', timeVal: 0, status: t.status || 'LOCAL', isLocal: true });
           }
         });
       }
 
       parsedTasks.sort((a, b) => a.date - b.date);
-
       const grouped = [];
       parsedTasks.forEach(t => {
         let group = grouped.find(g => g.dateStr === t.dateStr);
-        if (!group) {
-          group = { dateStr: t.dateStr, dateObj: t.date, tasks: [] };
-          grouped.push(group);
-        }
+        if (!group) { group = { dateStr: t.dateStr, dateObj: t.date, tasks: [] }; grouped.push(group); }
         group.tasks.push(t);
       });
-
       grouped.forEach(g => g.tasks.sort((a, b) => a.timeVal - b.timeVal));
       setTasks(grouped);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch(err) {
+    } catch (err) {
       setErrorMsg('Lỗi tải dữ liệu: ' + err.message);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchTasks();
+    setRefreshing(false);
+  }, [fetchTasks]);
 
   const handleAddLocal = async () => {
     if (!newTaskDate || !newTaskName) return Alert.alert('Lỗi', 'Vui lòng nhập ngày và tên công việc.');
     const parts = newTaskDate.split(/[-/]/);
     if (parts.length !== 3) return Alert.alert('Lỗi', 'Ngày phải có định dạng DD-MM-YYYY');
-    
     const taskDate = new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
-    const newTask = { id: `local_${Date.now()}`, timestamp: taskDate.getTime(), dateStr: newTaskDate, job: newTaskName };
-
+    const newTask = { id: `local_${Date.now()}`, timestamp: taskDate.getTime(), dateStr: newTaskDate, job: newTaskName, status: 'WAIT' };
     try {
       const existingStr = await AsyncStorage.getItem('LOCAL_TASKS');
       let existing = existingStr ? JSON.parse(existingStr) : [];
       existing.push(newTask);
       await AsyncStorage.setItem('LOCAL_TASKS', JSON.stringify(existing));
-      setNewTaskName('');
-      setShowAddForm(false);
+      setNewTaskName(''); setShowAddForm(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       fetchTasks();
-    } catch(e) { Alert.alert('Lỗi', 'Không thể lưu công việc.'); }
+    } catch (e) { Alert.alert('Lỗi', 'Không thể lưu công việc.'); }
+  };
+
+  const handleDeleteLocal = async (task) => {
+    Alert.alert('Xác nhận', `Xóa công việc "${task.job}"?`, [
+      { text: 'Hủy', style: 'cancel' },
+      { text: 'Xóa', style: 'destructive', onPress: async () => {
+        try {
+          const str = await AsyncStorage.getItem('LOCAL_TASKS');
+          let list = str ? JSON.parse(str) : [];
+          list = list.filter(t => t.id !== task.id);
+          await AsyncStorage.setItem('LOCAL_TASKS', JSON.stringify(list));
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+          setActionModalVisible(false);
+          fetchTasks();
+        } catch {}
+      }}
+    ]);
+  };
+
+  const handleMarkDone = async (task) => {
+    try {
+      const str = await AsyncStorage.getItem('LOCAL_TASKS');
+      let list = str ? JSON.parse(str) : [];
+      const idx = list.findIndex(t => t.id === task.id);
+      if (idx !== -1) {
+        list[idx].status = list[idx].status === 'DONE' ? 'WAIT' : 'DONE';
+        await AsyncStorage.setItem('LOCAL_TASKS', JSON.stringify(list));
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setActionModalVisible(false);
+        fetchTasks();
+      }
+    } catch {}
+  };
+
+  const handleShareTask = async (task) => {
+    try {
+      await Share.share({ message: `📋 ${task.job}\n📅 ${task.dateStr}\n⏰ ${task.fromTime || '--:--'} - ${task.toTime || '--:--'}\n📊 ${STATUS_CONFIG[task.status]?.label || task.status}` });
+    } catch {}
   };
 
   const clearLocalTasks = async () => {
-    await AsyncStorage.removeItem('LOCAL_TASKS');
-    fetchTasks();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    Alert.alert('Xóa toàn bộ', 'Xóa tất cả công việc cục bộ?', [
+      { text: 'Hủy', style: 'cancel' },
+      { text: 'Xóa', style: 'destructive', onPress: async () => {
+        await AsyncStorage.removeItem('LOCAL_TASKS');
+        fetchTasks();
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      }}
+    ]);
   };
 
+  const allTasks = tasks.flatMap(g => g.tasks);
+  const totalCount = allTasks.length;
+  const doneCount = allTasks.filter(t => t.status === 'DONE').length;
+  const waitCount = allTasks.filter(t => t.status === 'WAIT' || t.status === 'LOCAL').length;
+  const missedCount = allTasks.filter(t => t.status === 'MISSED').length;
+  const progressPct = totalCount > 0 ? (doneCount / totalCount * 100) : 0;
+
   const renderItem = ({ item }) => {
-    const isToday = item.dateObj.toDateString() === new Date().toDateString();
+    const isToday = item.dateObj instanceof Date && item.dateObj.toDateString() === new Date().toDateString();
     return (
       <View style={styles.groupContainer}>
         <View style={styles.dateHeaderWrap}>
-          <View style={[styles.dateBadge, isToday && {backgroundColor: THEME.todayBg, borderColor: THEME.todayBg}]}>
-            <Text style={[styles.dateBadgeText, isToday && {color: '#fff'}]}>{isToday ? 'HÔM NAY' : item.dateStr}</Text>
-          </View>
+          <LinearGradient colors={isToday ? ['#FF5722', '#E64A19'] : [THEME.card, THEME.card]} style={[styles.dateBadge, isToday && { borderRadius: 25 }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+            <Text style={[styles.dateBadgeText, isToday && { color: '#fff' }]}>
+              {isToday ? `HÔM NAY • ${item.dateStr}` : item.dateStr}
+            </Text>
+          </LinearGradient>
           <View style={styles.headerLine} />
         </View>
         <View style={styles.timelineContainer}>
@@ -290,108 +283,181 @@ export default function TaskScreen() {
     );
   };
 
-  return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
-      
+  const ListHeader = () => (
+    <View>
       {/* Super Header */}
-      <View style={styles.superHeader}>
-        <View style={styles.headerTitleWrap}>
-          <Ionicons name="layers" size={28} color={THEME.accentBlue} style={{marginRight: 10}} />
-          <View>
-            <Text style={styles.headerTitleMain}>NHIỆM VỤ</Text>
-            <Text style={styles.headerTitleSub}>Lịch trình 7 ngày tới</Text>
+      <LinearGradient colors={['#0D0D0F', '#121214']} style={styles.superHeader}>
+        <View style={styles.headerRow}>
+          <View style={styles.headerTitleWrap}>
+            <View style={styles.headerIconBox}>
+              <Ionicons name="layers" size={24} color={THEME.accentBlue} />
+            </View>
+            <View>
+              <Text style={styles.headerTitleMain}>NHIỆM VỤ</Text>
+              <Text style={styles.headerTitleSub}>Lịch trình 7 ngày tới</Text>
+            </View>
+          </View>
+          <View style={styles.headerIcons}>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowAddForm(true); }}>
+              <Ionicons name="add" size={20} color={THEME.textLight} />
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.iconBtn, { marginLeft: 8 }]} onPress={fetchTasks}>
+              <Ionicons name="sync" size={20} color={THEME.textLight} />
+            </TouchableOpacity>
           </View>
         </View>
-        <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowAddForm(true); }}>
-            <Ionicons name="add" size={22} color={THEME.textLight} />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.iconBtn, {marginLeft: 10}]} onPress={fetchTasks}>
-            <Ionicons name="sync" size={22} color={THEME.textLight} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      </LinearGradient>
 
-      {/* Mini Dashboard */}
+      {/* Dashboard */}
       <View style={styles.dashboardWrap}>
-        <BlurView intensity={40} tint="dark" style={styles.dashboardBox}>
+        <BlurView intensity={50} tint="dark" style={styles.dashboardBox}>
           <View style={styles.dashItem}>
-            <Text style={styles.dashValue}>{tasks.flatMap(g => g.tasks).length}</Text>
-            <Text style={styles.dashLabel}>Tổng số</Text>
+            <Text style={styles.dashValue}>{totalCount}</Text>
+            <Text style={styles.dashLabel}>Tổng</Text>
           </View>
           <View style={styles.dashDivider} />
           <View style={styles.dashItem}>
-            <Text style={[styles.dashValue, {color: THEME.accentGreen}]}>{tasks.flatMap(g => g.tasks).filter(t => t.status === 'DONE').length}</Text>
-            <Text style={styles.dashLabel}>Đã xong</Text>
+            <Text style={[styles.dashValue, { color: THEME.accentGreen }]}>{doneCount}</Text>
+            <Text style={[styles.dashLabel, { color: THEME.accentGreen }]}>Xong</Text>
           </View>
           <View style={styles.dashDivider} />
           <View style={styles.dashItem}>
-            <Text style={[styles.dashValue, {color: THEME.accentYellow}]}>{tasks.flatMap(g => g.tasks).filter(t => t.status === 'WAIT' || t.status === 'LOCAL').length}</Text>
-            <Text style={styles.dashLabel}>Đang chờ</Text>
+            <Text style={[styles.dashValue, { color: THEME.accentYellow }]}>{waitCount}</Text>
+            <Text style={[styles.dashLabel, { color: THEME.accentYellow }]}>Chờ</Text>
+          </View>
+          <View style={styles.dashDivider} />
+          <View style={styles.dashItem}>
+            <Text style={[styles.dashValue, { color: missedCount > 0 ? THEME.accentRed : THEME.textSub }]}>{missedCount}</Text>
+            <Text style={[styles.dashLabel, { color: missedCount > 0 ? THEME.accentRed : THEME.textSub }]}>Trễ</Text>
           </View>
         </BlurView>
+        {/* Progress bar */}
+        {totalCount > 0 && (
+          <View style={styles.progressBarOuter}>
+            <View style={[styles.progressBarFill, { width: `${progressPct}%` }]} />
+          </View>
+        )}
       </View>
 
       {errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
+    </View>
+  );
 
-      {isLoading ? (
-        <View style={{flex: 1, justifyContent: 'center'}}><ActivityIndicator size="large" color={THEME.accentBlue}/></View>
+  const ListEmpty = () => (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconRing}>
+        <Ionicons name="calendar-outline" size={48} color={THEME.accentBlue} />
+      </View>
+      <Text style={styles.emptyTitle}>Không có công việc</Text>
+      <Text style={styles.emptySub}>Bạn không có công việc nào trong 7 ngày tới.</Text>
+      <TouchableOpacity style={styles.emptyAddBtn} onPress={() => setShowAddForm(true)}>
+        <Ionicons name="add-circle" size={18} color={THEME.bg} style={{ marginRight: 6 }} />
+        <Text style={styles.emptyAddBtnText}>Tạo công việc mới</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const actionSheetAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(actionSheetAnim, { toValue: actionModalVisible ? 1 : 0, friction: 8, tension: 65, useNativeDriver: true }).start();
+  }, [actionModalVisible]);
+
+  return (
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
+      {isLoading && tasks.length === 0 ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={THEME.accentBlue} />
+          <Text style={{ color: THEME.textSub, marginTop: 15, fontStyle: 'italic' }}>Đang tải dữ liệu...</Text>
+        </View>
       ) : (
-        <FlatList 
+        <FlatList
+          ref={listRef}
           data={tasks}
           renderItem={renderItem}
           keyExtractor={i => i.dateStr}
-          contentContainerStyle={{padding: 20, paddingBottom: 150}}
-          ListEmptyComponent={<Text style={styles.emptyText}>✨ Bạn không có công việc nào trong 7 ngày tới.</Text>}
+          ListHeaderComponent={ListHeader}
+          ListEmptyComponent={ListEmpty}
+          contentContainerStyle={{ paddingBottom: 130 }}
           showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={THEME.accentBlue} progressBackgroundColor={THEME.card} colors={[THEME.accentBlue]} />}
         />
       )}
 
-      <TouchableOpacity style={styles.clearBtn} onPress={clearLocalTasks}>
-        <Text style={{color: THEME.textSub, fontSize: 10}}>Xóa dữ liệu Cục bộ</Text>
-      </TouchableOpacity>
+      {/* Floating Add Button */}
+      <Animated.View style={[styles.fabWrap, { opacity: fabAnim, transform: [{ scale: fabAnim }] }]}>
+        <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowAddForm(true); }} activeOpacity={0.8}>
+          <LinearGradient colors={['#D4AF37', '#B8960C']} style={styles.fab}>
+            <Ionicons name="add" size={26} color={THEME.bg} />
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
 
-      {/* Modal Kính Mờ: Thêm Công Việc */}
-      <Modal visible={showAddForm} transparent animationType="slide">
-        <TouchableOpacity style={{flex: 1}} activeOpacity={1} onPress={() => setShowAddForm(false)} />
-        <BlurView intensity={90} tint="dark" style={styles.bottomSheet}>
-          <View style={styles.bottomSheetHandle} />
+      {/* Add Task Modal */}
+      <Modal visible={showAddForm} transparent animationType="slide" onRequestClose={() => setShowAddForm(false)}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowAddForm(false)} />
+        <BlurView intensity={95} tint="dark" style={styles.addSheet}>
+          <View style={styles.bSheetHandleWrap}><View style={styles.bSheetHandle} /></View>
           <Text style={styles.sheetTitle}>Thêm Công Việc Mới</Text>
-          <TextInput style={styles.input} placeholder="Ngày (VD: 25-04-2026)" placeholderTextColor={THEME.textSub} value={newTaskDate} onChangeText={setNewTaskDate} />
-          <TextInput style={styles.input} placeholder="Tên công việc" placeholderTextColor={THEME.textSub} value={newTaskName} onChangeText={setNewTaskName} />
+          <View style={styles.inputGroup}>
+            <Ionicons name="calendar-outline" size={16} color={THEME.textSub} style={{ marginRight: 8 }} />
+            <TextInput style={styles.input} placeholder="Ngày (VD: 25-04-2026)" placeholderTextColor={THEME.textSub} value={newTaskDate} onChangeText={setNewTaskDate} />
+          </View>
+          <View style={styles.inputGroup}>
+            <Ionicons name="document-text-outline" size={16} color={THEME.textSub} style={{ marginRight: 8 }} />
+            <TextInput style={styles.input} placeholder="Tên công việc" placeholderTextColor={THEME.textSub} value={newTaskName} onChangeText={setNewTaskName} />
+          </View>
           <TouchableOpacity style={styles.submitBtn} onPress={handleAddLocal}>
+            <LinearGradient colors={['#3498DB', '#2980B9']} style={StyleSheet.absoluteFillObject} borderRadius={14} />
             <Text style={styles.submitBtnText}>LƯU VÀO LỊCH TRÌNH</Text>
           </TouchableOpacity>
         </BlurView>
       </Modal>
 
-      {/* Modal Kính Mờ: Thao Tác Thẻ */}
-      <Modal visible={actionModalVisible} transparent animationType="fade">
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setActionModalVisible(false)}>
-          <BlurView intensity={60} tint="dark" style={styles.actionSheet}>
+      {/* Action Modal */}
+      <Modal visible={actionModalVisible} transparent animationType="fade" onRequestClose={() => setActionModalVisible(false)}>
+        <TouchableOpacity style={styles.actionOverlay} activeOpacity={1} onPress={() => setActionModalVisible(false)}>
+          <BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill} />
+          <Animated.View style={[styles.actionSheet, { transform: [{ scale: actionSheetAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }], opacity: actionSheetAnim }]}>
+            <LinearGradient colors={['rgba(212,175,55,0.06)', 'transparent']} style={StyleSheet.absoluteFillObject} borderRadius={25} />
             <View style={styles.actionHeader}>
-              <Text style={styles.actionTitle} numberOfLines={1}>{selectedTask?.job}</Text>
-              <Text style={styles.actionSub}>{selectedTask?.dateStr} | {selectedTask?.fromTime} - {selectedTask?.toTime}</Text>
+              <Text style={styles.actionTitle} numberOfLines={2}>{selectedTask?.job}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                <Ionicons name="calendar-outline" size={12} color={THEME.accentGold} />
+                <Text style={styles.actionSub}>{selectedTask?.dateStr}</Text>
+                <Ionicons name="time-outline" size={12} color={THEME.accentGold} style={{ marginLeft: 4 }} />
+                <Text style={styles.actionSub}>{selectedTask?.fromTime || '--:--'} - {selectedTask?.toTime || '--:--'}</Text>
+              </View>
             </View>
 
-            {selectedTask?.isLocal ? (
-              <>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => { Alert.alert('Xóa', 'Tính năng xóa chi tiết đang hoàn thiện'); setActionModalVisible(false); }}>
-                  <Ionicons name="trash" size={20} color={THEME.accentRed} />
-                  <Text style={[styles.actionBtnText, {color: THEME.accentRed}]}>Xóa Công Việc</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <View style={styles.actionNote}>
-                <Ionicons name="cloud-done" size={24} color={THEME.accentBlue} />
-                <Text style={styles.actionNoteText}>Đây là công việc đồng bộ từ Cloud. Không thể xóa trên thiết bị.</Text>
-              </View>
-            )}
+            <View style={styles.actionBtnRow}>
+              {selectedTask?.isLocal ? (
+                <>
+                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: 'rgba(46,204,113,0.1)' }]} onPress={() => handleMarkDone(selectedTask)}>
+                    <Ionicons name={selectedTask?.status === 'DONE' ? 'undo' : 'checkmark-circle'} size={22} color={THEME.accentGreen} />
+                    <Text style={[styles.actionBtnText, { color: THEME.accentGreen }]}>{selectedTask?.status === 'DONE' ? 'Hoàn tác' : 'Hoàn thành'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: 'rgba(231,76,60,0.1)' }]} onPress={() => handleDeleteLocal(selectedTask)}>
+                    <Ionicons name="trash-outline" size={22} color={THEME.accentRed} />
+                    <Text style={[styles.actionBtnText, { color: THEME.accentRed }]}>Xóa</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={styles.actionNote}>
+                  <Ionicons name="cloud-done" size={24} color={THEME.accentBlue} />
+                  <Text style={styles.actionNoteText}>Công việc đồng bộ từ Cloud.</Text>
+                </View>
+              )}
+            </View>
+
+            <TouchableOpacity style={styles.actionBtnShare} onPress={() => handleShareTask(selectedTask)}>
+              <Ionicons name="share-outline" size={18} color={THEME.textSub} />
+              <Text style={styles.actionBtnShareText}>Chia sẻ</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionBtnClose} onPress={() => setActionModalVisible(false)}>
               <Text style={styles.actionBtnCloseText}>ĐÓNG</Text>
             </TouchableOpacity>
-          </BlurView>
+          </Animated.View>
         </TouchableOpacity>
       </Modal>
     </KeyboardAvoidingView>
@@ -400,71 +466,97 @@ export default function TaskScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: THEME.bg },
-  
-  superHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: THEME.header, paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 50 : 20, paddingBottom: 20, zIndex: 10 },
-  headerTitleWrap: { flexDirection: 'row', alignItems: 'center' },
-  headerTitleMain: { fontSize: 22, fontWeight: '900', color: THEME.textLight, letterSpacing: 1 },
-  headerTitleSub: { fontSize: 12, color: THEME.textSub, marginTop: 2 },
+
+  // ─── Header ───
+  superHeader: { paddingTop: Platform.OS === 'ios' ? 50 : 20, paddingBottom: 16, paddingHorizontal: 16, borderBottomWidth: 1, borderColor: THEME.border },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(52,152,219,0.12)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(52,152,219,0.2)' },
+  headerTitleMain: { fontSize: 20, fontWeight: '900', color: THEME.textLight, letterSpacing: 1 },
+  headerTitleSub: { fontSize: 11, color: THEME.textSub, marginTop: 1 },
   headerIcons: { flexDirection: 'row' },
-  iconBtn: { backgroundColor: THEME.card, padding: 8, borderRadius: 12, borderWidth: 1, borderColor: THEME.border },
-  
-  dashboardWrap: { paddingHorizontal: 15, marginTop: -10, zIndex: 9 },
-  dashboardBox: { flexDirection: 'row', justifyContent: 'space-around', backgroundColor: 'rgba(45, 45, 52, 0.6)', borderRadius: 20, paddingVertical: 15, borderWidth: 1, borderColor: THEME.border, overflow: 'hidden' },
+  iconBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: THEME.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: THEME.border },
+
+  // ─── Dashboard ───
+  dashboardWrap: { paddingHorizontal: 15, marginTop: -8, zIndex: 9 },
+  dashboardBox: { flexDirection: 'row', justifyContent: 'space-around', backgroundColor: 'rgba(28,28,32,0.7)', borderRadius: 18, paddingVertical: 14, borderWidth: 1, borderColor: THEME.border, overflow: 'hidden' },
   dashItem: { alignItems: 'center', flex: 1 },
-  dashValue: { fontSize: 20, fontWeight: 'bold', color: THEME.textLight },
-  dashLabel: { fontSize: 11, color: THEME.textSub, marginTop: 4, textTransform: 'uppercase' },
-  dashDivider: { width: 1, backgroundColor: THEME.border },
+  dashValue: { fontSize: 22, fontWeight: 'bold', color: THEME.textLight },
+  dashLabel: { fontSize: 10, color: THEME.textSub, marginTop: 3, textTransform: 'uppercase', fontWeight: '700', letterSpacing: 0.5 },
+  dashDivider: { width: 1, backgroundColor: THEME.border, alignSelf: 'stretch', marginVertical: -14 },
 
-  groupContainer: { marginBottom: 30, marginTop: 10 },
-  dateHeaderWrap: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  dateBadge: { backgroundColor: THEME.card, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 25, borderWidth: 1, borderColor: THEME.border, zIndex: 2, shadowColor: '#000', shadowOffset: {width:0, height:2}, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
-  dateBadgeText: { fontSize: 13, fontWeight: 'bold', color: THEME.textSub },
-  headerLine: { flex: 1, height: 2, backgroundColor: THEME.border, marginLeft: -10, zIndex: 1, borderRadius: 1 },
+  progressBarOuter: { height: 3, backgroundColor: THEME.border, borderRadius: 2, marginTop: 10, overflow: 'hidden' },
+  progressBarFill: { height: '100%', backgroundColor: THEME.accentGreen, borderRadius: 2 },
 
+  // ─── Group ───
+  groupContainer: { marginBottom: 28, marginTop: 8 },
+  dateHeaderWrap: { flexDirection: 'row', alignItems: 'center', marginBottom: 18, paddingHorizontal: 20 },
+  dateBadge: { paddingVertical: 6, paddingHorizontal: 16, borderRadius: 25, borderWidth: 1, borderColor: THEME.border, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3, overflow: 'hidden' },
+  dateBadgeText: { fontSize: 12, fontWeight: 'bold', color: THEME.textSub },
+  headerLine: { flex: 1, height: 1.5, backgroundColor: THEME.border, marginLeft: -10, borderRadius: 1 },
+
+  // ─── Timeline ───
   timelineContainer: { paddingLeft: 10 },
   timelineRow: { flexDirection: 'row' },
-  timelineAxis: { width: 30, alignItems: 'center', marginRight: 15 },
-  timelineDot: { width: 14, height: 14, borderRadius: 7, marginTop: 20, borderWidth: 3, borderColor: THEME.bg, zIndex: 2 },
-  timelineLine: { width: 2, flex: 1, marginTop: -5, marginBottom: -25, backgroundColor: THEME.border, zIndex: 1 }, 
+  timelineAxis: { width: 28, alignItems: 'center', marginRight: 12 },
+  timelineDot: { width: 12, height: 12, borderRadius: 6, marginTop: 20, borderWidth: 2.5, borderColor: THEME.bg, zIndex: 2 },
+  timelineLine: { width: 2, flex: 1, marginTop: -4, marginBottom: -22, zIndex: 1 },
 
-  livePulseContainer: { width: 24, height: 24, marginTop: 15, justifyContent: 'center', alignItems: 'center', zIndex: 3 },
-  livePulseGlow: { position: 'absolute', width: 24, height: 24, borderRadius: 12, backgroundColor: THEME.pulseColor, opacity: 0.5 },
-  livePulseCore: { width: 10, height: 10, borderRadius: 5, backgroundColor: THEME.pulseColor },
+  livePulseContainer: { width: 22, height: 22, marginTop: 15, justifyContent: 'center', alignItems: 'center', zIndex: 3 },
+  livePulseGlow: { position: 'absolute', width: 22, height: 22, borderRadius: 11, backgroundColor: THEME.pulseColor, opacity: 0.4 },
+  livePulseCore: { width: 9, height: 9, borderRadius: 5, backgroundColor: THEME.pulseColor },
 
-  taskCard: { flex: 1, backgroundColor: THEME.card, borderRadius: 15, padding: 18, marginBottom: 20, borderLeftWidth: 5, shadowColor: '#000', shadowOffset: {width:0, height:5}, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
-  liveCard: { backgroundColor: 'rgba(0, 255, 0, 0.05)', borderColor: THEME.pulseColor, borderWidth: 1, shadowColor: THEME.pulseColor, shadowRadius: 15, shadowOpacity: 0.2 },
-  
-  taskCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  taskCard: { flex: 1, backgroundColor: THEME.card, borderRadius: 15, padding: 16, marginBottom: 16, borderLeftWidth: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4, overflow: 'hidden' },
+  liveCard: { backgroundColor: 'rgba(0,255,0,0.04)', borderColor: THEME.pulseColor, borderWidth: 1, shadowColor: THEME.pulseColor, shadowRadius: 12, shadowOpacity: 0.15 },
+
+  taskCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   timeWrap: { flexDirection: 'row', alignItems: 'center' },
-  timeText: { fontSize: 13, color: THEME.textSub, fontWeight: '600' },
-  
-  statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  statusText: { fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+  timeText: { fontSize: 12, color: THEME.textSub, fontWeight: '600' },
+  overdueDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: THEME.accentRed, marginLeft: 6 },
 
-  taskName: { fontSize: 17, color: THEME.textLight, lineHeight: 24, fontWeight: '500' },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  statusText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
 
-  // Bottom Sheet Form Thêm Mới
-  bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 25, paddingTop: 15, backgroundColor: 'rgba(28, 28, 32, 0.85)', borderTopLeftRadius: 30, borderTopRightRadius: 30, borderWidth: 1, borderColor: THEME.border },
-  bottomSheetHandle: { width: 40, height: 5, backgroundColor: '#555', borderRadius: 3, alignSelf: 'center', marginBottom: 20 },
-  sheetTitle: { color: THEME.textLight, fontWeight: 'bold', fontSize: 18, marginBottom: 20, textAlign: 'center' },
-  input: { backgroundColor: THEME.bg, color: THEME.textLight, padding: 15, borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: THEME.border, fontSize: 15 },
-  submitBtn: { backgroundColor: THEME.accentBlue, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
-  submitBtnText: { color: '#fff', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
+  taskName: { fontSize: 16, color: THEME.textLight, lineHeight: 22, fontWeight: '500' },
 
-  // Modal Thao Tác Thẻ
-  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 20 },
-  actionSheet: { width: '100%', backgroundColor: 'rgba(28, 28, 32, 0.9)', borderRadius: 25, padding: 20, borderWidth: 1, borderColor: THEME.border, overflow: 'hidden' },
-  actionHeader: { borderBottomWidth: 1, borderColor: THEME.border, paddingBottom: 15, marginBottom: 15 },
-  actionTitle: { fontSize: 18, fontWeight: 'bold', color: THEME.textLight, marginBottom: 5 },
-  actionSub: { fontSize: 13, color: THEME.accentGold },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: THEME.card, padding: 15, borderRadius: 12, marginBottom: 10 },
-  actionBtnText: { marginLeft: 10, fontSize: 15, fontWeight: 'bold' },
-  actionNote: { alignItems: 'center', padding: 20 },
-  actionNoteText: { color: THEME.textSub, textAlign: 'center', marginTop: 10, fontSize: 13, fontStyle: 'italic' },
-  actionBtnClose: { marginTop: 10, padding: 15, alignItems: 'center' },
-  actionBtnCloseText: { color: THEME.textSub, fontWeight: 'bold', fontSize: 14 },
+  // ─── FAB ───
+  fabWrap: { position: 'absolute', bottom: 155, right: 20, zIndex: 50 },
+  fab: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', shadowColor: THEME.accentGold, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8 },
 
-  errorText: { color: THEME.accentRed, padding: 15, textAlign: 'center' },
-  emptyText: { color: THEME.textSub, textAlign: 'center', marginTop: 80, fontStyle: 'italic' },
-  clearBtn: { position: 'absolute', bottom: 140, alignSelf: 'center', opacity: 0.5 }
+  // ─── Empty ───
+  emptyContainer: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 40 },
+  emptyIconRing: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(52,152,219,0.08)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(52,152,219,0.15)', marginBottom: 16 },
+  emptyTitle: { fontSize: 18, fontWeight: 'bold', color: THEME.textLight, marginBottom: 6 },
+  emptySub: { fontSize: 14, color: THEME.textSub, textAlign: 'center', marginBottom: 24, lineHeight: 20 },
+  emptyAddBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: THEME.accentBlue, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
+  emptyAddBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+
+  // ─── Add Sheet ───
+  addSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 24, paddingTop: 10, backgroundColor: 'rgba(20,20,24,0.92)', borderTopLeftRadius: 30, borderTopRightRadius: 30, borderWidth: 1, borderColor: THEME.border },
+  bSheetHandleWrap: { alignItems: 'center', marginBottom: 12 },
+  bSheetHandle: { width: 40, height: 5, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 3 },
+  sheetTitle: { color: THEME.textLight, fontWeight: 'bold', fontSize: 18, marginBottom: 20, textAlign: 'center', letterSpacing: 0.5 },
+  inputGroup: { flexDirection: 'row', alignItems: 'center', backgroundColor: THEME.bg, borderRadius: 12, paddingHorizontal: 14, marginBottom: 12, borderWidth: 1, borderColor: THEME.border },
+  input: { flex: 1, color: THEME.textLight, paddingVertical: 14, fontSize: 14 },
+  submitBtn: { height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 4, overflow: 'hidden' },
+  submitBtnText: { color: '#fff', fontWeight: '900', fontSize: 15, letterSpacing: 1 },
+
+  // ─── Action Modal ───
+  actionOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  actionSheet: { width: '100%', backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: 25, padding: 20, borderWidth: 1, borderColor: THEME.border, shadowColor: '#000', shadowOffset: { width: 0, height: 15 }, shadowOpacity: 0.5, shadowRadius: 25, elevation: 20, overflow: 'hidden' },
+  actionHeader: { borderBottomWidth: 1, borderColor: THEME.border, paddingBottom: 14, marginBottom: 14 },
+  actionTitle: { fontSize: 17, fontWeight: 'bold', color: THEME.textLight },
+  actionSub: { fontSize: 13, color: THEME.accentGold, fontWeight: '500' },
+  actionBtnRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 14, gap: 8 },
+  actionBtnText: { fontSize: 14, fontWeight: 'bold' },
+  actionNote: { alignItems: 'center', padding: 16, flex: 1 },
+  actionNoteText: { color: THEME.textSub, textAlign: 'center', marginTop: 8, fontSize: 13, fontStyle: 'italic' },
+  actionBtnShare: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 10, gap: 6 },
+  actionBtnShareText: { color: THEME.textSub, fontSize: 13, fontWeight: '600' },
+  actionBtnClose: { marginTop: 8, padding: 12, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12 },
+  actionBtnCloseText: { color: THEME.textSub, fontWeight: 'bold', fontSize: 13 },
+
+  // ─── Misc ───
+  errorText: { color: THEME.accentRed, padding: 12, textAlign: 'center', fontSize: 13 },
 });
