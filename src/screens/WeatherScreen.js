@@ -290,12 +290,15 @@ export default function WeatherScreen() {
       const dayTasks = allTasks.filter(t => t.dateStr === matchFormat);
       const taskCount = dayTasks.length;
       const wmo = getWMO(daily.weather_code[i]);
+      const dayOfWeek = new Date(dateStr).getDay();
+      const isSat = dayOfWeek === 6;
+      const isSun = dayOfWeek === 0;
       days.push(
         <Animated.View key={i} style={{ opacity: fadeAnims[i], transform: [{ translateY: slideAnims[i] }] }}>
-          <TouchableOpacity style={styles.fcCard} onPress={() => handleDayPress(dateStr)} activeOpacity={0.8}>
+          <TouchableOpacity style={[styles.fcCard, isSat && styles.fcSat, isSun && styles.fcSun]} onPress={() => handleDayPress(dateStr)} activeOpacity={0.8}>
             <LinearGradient colors={['rgba(52,152,219,0.07)']} style={StyleSheet.absoluteFillObject} borderRadius={16} />
             {taskCount > 0 && <View style={styles.fcBadge}><Text style={styles.fcBadgeText}>{taskCount > 9 ? '9+' : taskCount}</Text></View>}
-            <Text style={styles.fcDayName}>{getDayName(dateStr)}</Text>
+            <Text style={[styles.fcDayName, isSat && { color: THEME.satBorder }, isSun && { color: THEME.sunBorder }]}>{getDayName(dateStr)}</Text>
             <Text style={styles.fcSolarDate}>{shortDate}</Text>
             <Ionicons name={wmo.icon} size={20} color={THEME.accentBlue} style={{ marginVertical: 4 }} />
             <Text style={styles.fcTemp}>{Math.round(daily.temperature_2m_max[i])}°</Text>
@@ -454,6 +457,8 @@ const styles = StyleSheet.create({
   hTemp: { fontSize: 11, fontWeight: '600', color: THEME.textLight, marginTop: 1 },
   hTime: { fontSize: 9, color: THEME.textSub, marginTop: 1 },
   fcCard: { borderRadius: 16, paddingVertical: 10, paddingHorizontal: 8, alignItems: 'center', borderWidth: 1, borderColor: THEME.border, minWidth: 68, overflow: 'hidden' },
+  fcSat: { borderColor: THEME.satBorder, borderWidth: 1.5 },
+  fcSun: { borderColor: THEME.sunBorder, borderWidth: 1.5 },
   fcDayName: { fontSize: 11, fontWeight: 'bold', color: THEME.textLight, marginBottom: 1 },
   fcSolarDate: { fontSize: 9, color: THEME.textSub },
   fcTemp: { fontSize: 15, fontWeight: 'bold', color: THEME.accentBlue, marginBottom: 1 },
