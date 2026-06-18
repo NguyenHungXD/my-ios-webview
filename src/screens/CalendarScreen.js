@@ -18,7 +18,10 @@ import {
   getMonthChiIdx, getMonthCanIdx,
   getHourChiIdx, getHourCanIdx,
   getCuuTinhInfo, getTietKhi, getDayScore,
-  getSaoHan
+  getSaoHan, getSimpleMenh, MENH_DESC,
+  getCungMenh, getWesternZodiac, analyzeNameElements,
+  getPersonalYearNumber, PERSONAL_YEAR_INFO,
+  getMenhDayAdvice, analyzeElementBalance
 } from '../fengshui';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -142,6 +145,7 @@ export default function CalendarScreen() {
   const [inpName, setInpName] = useState('');
   const [inpDOB, setInpDOB] = useState('');
   const [inpGioSinh, setInpGioSinh] = useState('');
+  const [inpGender, setInpGender] = useState(null);
 
   // Tasks integration
   const [allTasks, setAllTasks] = useState([]);
@@ -161,7 +165,13 @@ export default function CalendarScreen() {
   const loadProfile = async () => {
     try {
       const stored = await AsyncStorage.getItem('USER_BAZI_PROFILE');
-      if (stored) { const p = JSON.parse(stored); if (p.gioSinh === undefined) p.gioSinh = null; setProfile(p); }
+      if (stored) {
+        const p = JSON.parse(stored);
+        if (p.gioSinh === undefined) p.gioSinh = null;
+        if (p.gender === undefined) p.gender = null;
+        if (!p.simpleMenh) p.simpleMenh = getSimpleMenh(CAN_ARRAY.indexOf(p.yearCan));
+        setProfile(p);
+      }
     } catch (e) {}
   };
 
@@ -185,7 +195,7 @@ export default function CalendarScreen() {
       const jd = lunarCache.getJD(y, m, d);
       const nhatCanIdx = (jd + 9) % 10;
       const nhatCan = CAN_ARRAY[nhatCanIdx];
-      const userProfile = { name: inpName, dob: `${d}/${m}/${y}`, yearCan, yearChi, nhatCan, napAm, gioSinh };
+      const userProfile = { name: inpName, dob: `${d}/${m}/${y}`, yearCan, yearChi, nhatCan, napAm, gioSinh, gender: inpGender, simpleMenh: getSimpleMenh((lunar[2] + 6) % 10), westernZodiac: getWesternZodiac(m, d) };
       await AsyncStorage.setItem('USER_BAZI_PROFILE', JSON.stringify(userProfile));
       setProfile(userProfile); setProfileModal(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -251,6 +261,7 @@ export default function CalendarScreen() {
     const scores = {};
     const lastDay = new Date(year, month, 0).getDate();
     const myCanIdx = CAN_ARRAY.indexOf(profile.nhatCan);
+    const menhEl = profile.simpleMenh || getSimpleMenh(CAN_ARRAY.indexOf(profile.yearCan));
     for (let day = 1; day <= lastDay; day++) {
       const key = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const lunar = lunarCache.getLunar(year, month, day);
@@ -260,7 +271,10 @@ export default function CalendarScreen() {
       const dayChi = CHI_ARRAY[dayChiIdx];
       const isHoangDao = getGioHoangDao(dayChi).length > 0;
       const thapThanKey = THAP_THAN_MATRIX[myCanIdx][dayCanIdx];
-      scores[key] = getDayScore(getTruc(lunar[1], dayChi), profile.yearChi, dayChi, thapThanKey, isHoangDao);
+      const dayEl = NGU_HANH_ELEMENT_CAN[dayCanIdx] || 'Thổ';
+      const menhSc = getMenhDayScore(menhEl, dayEl);
+      const baseSc = getDayScore(getTruc(lunar[1], dayChi), profile.yearChi, dayChi, thapThanKey, isHoangDao);
+      scores[key] = baseSc + menhSc.score;
     }
     return scores;
   };
@@ -336,7 +350,7 @@ export default function CalendarScreen() {
         const thapThanKey = THAP_THAN_MATRIX[myCanIdx][dayCanIdx];
         baziReading = { thapThan: { key: thapThanKey, ...THAP_THAN_DESC[thapThanKey] }, diaChi: checkDiaChi(userProfile.yearChi, dayChi) };
       }
-      setDetailInfo({ lunarStr: `Mùng ${lD} tháng ${lM} năm ${lY}`, namCanChi: `${yearCan} ${yearChi}`, ngayCanChi: `${dayCan} ${dayChi}`, truc, isRằm: lD === 15, isMung1: lD === 1, hoangDaoHours, holiday, baziReading, tuTru, nguHanhRelations, cuuTinh, tietKhi, isHoangDao, saoHan });
+      setDetailInfo({ lunarStr: `Mùng ${lD} tháng ${lM} năm ${lY}`, namCanChi: `${yearCan} ${yearChi}`, ngayCanChi: `${dayCan} ${dayChi}`, truc, isRằm: lD === 15, isMung1: lD === 1, hoangDaoHours, holiday, baziReading, tuTru, nguHanhRelations, cuuTinh, tietKhi, isHoangDao, saoHan, dayCanIdx });
     } catch (e) { setDetailInfo(null); }
   };
 
@@ -400,6 +414,67 @@ export default function CalendarScreen() {
           <Text style={styles.trucLabel}>Trực {detailInfo.truc}</Text>
           <Text style={styles.trucDesc}>{TRUC_DESC[detailInfo.truc]}</Text>
         </View>
+
+        {/* Mệnh chủ */}
+        {profile?.simpleMenh && (
+          <View style={[styles.menhBox, { borderColor: (NGU_HANH_COLORS[profile.simpleMenh] || THEME.accentGold) + '40' }]}>
+            <View style={[styles.menhBadge, { backgroundColor: NGU_HANH_COLORS[profile.simpleMenh] || THEME.accentGold }]}>
+              <Text style={styles.menhBadgeText}>Mệnh {profile.simpleMenh}</Text>
+            </View>
+            <Text style={styles.menhNapAm}>{profile.napAm}</Text>
+            {MENH_DESC[profile.simpleMenh] && (
+              <Text style={styles.menhMeaning}>{MENH_DESC[profile.simpleMenh].meaning}</Text>
+            )}
+          </View>
+        )}
+
+        {/* Cung Mệnh (nếu có gender) */}
+        {profile?.gender && profile?.dob && (
+          (() => {
+            const dobP = profile.dob.split('/');
+            const birthY = parseInt(dobP[2], 10);
+            const cung = getCungMenh(birthY, profile.gender);
+            if (!cung) return null;
+            return (
+              <View style={[styles.ttCard, { borderColor: (NGU_HANH_COLORS[cung.element] || THEME.accentGold) + '30' }]}>
+                <View style={styles.ttHeader}>
+                  <Ionicons name="compass-outline" size={16} color={NGU_HANH_COLORS[cung.element] || THEME.accentGold} />
+                  <Text style={[styles.ttLabel, { color: NGU_HANH_COLORS[cung.element] || THEME.accentGold }]}>Cung Mệnh (Bát Trạch)</Text>
+                </View>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: NGU_HANH_COLORS[cung.element] || THEME.textLight, textAlign: 'center', marginVertical: 4 }}>{cung.name}</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 10 }}>
+                  <View style={[styles.pillarElBadge, { backgroundColor: (NGU_HANH_COLORS[cung.element] || '#888') + '25', borderColor: (NGU_HANH_COLORS[cung.element] || '#888') + '40' }]}>
+                    <View style={[styles.pillarElDot, { backgroundColor: NGU_HANH_COLORS[cung.element] || '#888' }]} />
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: NGU_HANH_COLORS[cung.element] || THEME.textSub }}>{cung.element}</Text>
+                  </View>
+                  <View style={[styles.pillarElBadge, { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: THEME.border }]}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: THEME.textSub }}>{cung.direction}</Text>
+                  </View>
+                </View>
+                <Text style={styles.ttDesc}>{cung.meaning}</Text>
+              </View>
+            );
+          })()
+        )}
+
+        {/* Hôm nay hợp với mệnh */}
+        {profile?.simpleMenh && detailInfo.dayCanIdx !== undefined && (
+          (() => {
+            const dayEl = NGU_HANH_ELEMENT_CAN[detailInfo.dayCanIdx] || 'Thổ';
+            const advice = getMenhDayAdvice(profile.simpleMenh, dayEl);
+            if (!advice) return null;
+            return (
+              <View style={[styles.ttCard, { borderColor: advice.color + '40' }]}>
+                <View style={styles.ttHeader}>
+                  <Ionicons name="leaf-outline" size={16} color={advice.color} />
+                  <Text style={[styles.ttLabel, { color: advice.color }]}>Hôm nay — {advice.verdict}</Text>
+                </View>
+                <Text style={[styles.ttTypeBadge, { color: advice.color, borderColor: advice.color + '50', alignSelf: 'center', fontSize: 13, paddingHorizontal: 16 }]}>{advice.verdict} với mệnh {profile.simpleMenh}</Text>
+                <Text style={styles.ttDesc}>{advice.desc}</Text>
+              </View>
+            );
+          })()
+        )}
       </View>
     );
   };
@@ -427,6 +502,50 @@ export default function CalendarScreen() {
             <Text style={[styles.ttTypeBadge, { color: detailInfo.baziReading.diaChi.color, borderColor: detailInfo.baziReading.diaChi.color + '50' }]}>{detailInfo.baziReading.diaChi.type}</Text>
             <Text style={styles.ttDesc}>{detailInfo.baziReading.diaChi.desc}</Text>
           </View>
+          {/* Western Zodiac */}
+          {profile?.westernZodiac && (
+            <View style={styles.ttCard}>
+              <View style={styles.ttHeader}>
+                <Ionicons name="planet-outline" size={16} color={THEME.accentGold} />
+                <Text style={[styles.ttLabel, { color: THEME.accentGold }]}>Cung Hoàng Đạo</Text>
+              </View>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: THEME.textLight, textAlign: 'center', marginBottom: 4 }}>{profile.westernZodiac.name}</Text>
+              <Text style={{ fontSize: 13, color: THEME.textSub, textAlign: 'center' }}>{profile.westernZodiac.meaning}</Text>
+            </View>
+          )}
+          {/* Name Analysis */}
+          {profile?.name && analyzeNameElements(profile.name) && (
+            (() => {
+              const na = analyzeNameElements(profile.name);
+              if (!na.counts || Object.values(na.counts).every(v => v === 0)) return null;
+              return (
+                <View style={styles.ttCard}>
+                  <View style={styles.ttHeader}>
+                    <Ionicons name="text-outline" size={16} color={THEME.accentGreen} />
+                    <Text style={[styles.ttLabel, { color: THEME.accentGreen }]}>Phân Tích Tên</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
+                    {Object.entries(na.counts).filter(([k]) => k !== 'Không Xác Định').map(([el, cnt]) => cnt > 0 && (
+                      <View key={el} style={[styles.pillarElBadge, { backgroundColor: (NGU_HANH_COLORS[el] || '#888') + '25', borderColor: (NGU_HANH_COLORS[el] || '#888') + '40' }]}>
+                        <View style={[styles.pillarElDot, { backgroundColor: NGU_HANH_COLORS[el] || '#888' }]} />
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: NGU_HANH_COLORS[el] || THEME.textSub }}>{el}: {cnt}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  {na.dominant.length > 0 && (
+                    <Text style={{ fontSize: 13, color: THEME.textLight, textAlign: 'center', fontWeight: '600' }}>
+                      Thiên hướng: {na.dominant.join(', ')}
+                    </Text>
+                  )}
+                  {na.hasAmbiguous && (
+                    <Text style={{ fontSize: 11, color: THEME.textSub, textAlign: 'center', marginTop: 4, fontStyle: 'italic' }}>
+                      (Một số chữ chưa xác định được Ngũ Hành)
+                    </Text>
+                  )}
+                </View>
+              );
+            })()
+          )}
         </View>
       ) : (
         <TouchableOpacity style={styles.promptProfile} onPress={() => setProfileModal(true)}>
@@ -474,6 +593,35 @@ export default function CalendarScreen() {
             </Text>
           </View>
         )}
+        {/* Phân Tích Ngũ Hành */}
+        <View style={styles.dividerLine} />
+        <View style={styles.ttCard}>
+          <View style={styles.ttHeader}>
+            <Ionicons name="stats-chart" size={16} color={THEME.accentBlue} />
+            <Text style={[styles.ttLabel, { color: THEME.accentBlue }]}>Ngũ Hành Tứ Trụ</Text>
+          </View>
+          {(pillars.length >= 3) && (() => {
+            const bal = analyzeElementBalance(pillars);
+            return (
+              <View>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 10, marginBottom: 10 }}>
+                  {Object.entries(bal.counts).map(([el, cnt]) => (
+                    <View key={el} style={{ alignItems: 'center' }}>
+                      <View style={[styles.pillarElBadge, { backgroundColor: (NGU_HANH_COLORS[el] || '#888') + '25', borderColor: (NGU_HANH_COLORS[el] || '#888') + '40' }]}>
+                        <View style={[styles.pillarElDot, { backgroundColor: NGU_HANH_COLORS[el] || '#888' }]} />
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: NGU_HANH_COLORS[el] || THEME.textSub }}>{cnt}</Text>
+                      </View>
+                      <Text style={{ fontSize: 9, color: NGU_HANH_COLORS[el] || THEME.textSub, marginTop: 2 }}>{el}</Text>
+                    </View>
+                  ))}
+                </View>
+                {bal.missing.length > 0 && <Text style={{ fontSize: 12, color: THEME.accentRed, textAlign: 'center' }}>Khuyết: {bal.missing.join(', ')}</Text>}
+                {bal.excess.length > 0 && <Text style={{ fontSize: 12, color: THEME.accentGreen, textAlign: 'center'}}>Dư: {bal.excess.join(', ')}</Text>}
+                {bal.balanced.length > 0 && <Text style={{ fontSize: 11, color: THEME.textSub, textAlign: 'center', marginTop: 2 }}>Vừa: {bal.balanced.join(', ')}</Text>}
+              </View>
+            );
+          })()}
+        </View>
       </View>
     );
   };
@@ -529,6 +677,29 @@ export default function CalendarScreen() {
             </Text>
           </View>
         )}
+        {/* Năm Cá Nhân */}
+        {profile?.dob && (() => {
+          const dobP = profile.dob.split('/');
+          const pd = parseInt(dobP[0], 10), pm = parseInt(dobP[1], 10), py = parseInt(dobP[2], 10);
+          const pyn = getPersonalYearNumber(pd, pm, py);
+          const pyi = PERSONAL_YEAR_INFO[pyn];
+          if (!pyi) return null;
+          return (
+            <View style={[styles.ctPanel, { borderColor: (NGU_HANH_COLORS[pyi.element] || THEME.accentGold) + '50', marginTop: 10 }]}>
+              <LinearGradient colors={['rgba(100,100,255,0.06)', 'transparent']} style={StyleSheet.absoluteFillObject} borderRadius={20} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <Ionicons name="trending-up" size={18} color={THEME.accentGold} />
+                <Text style={{ fontSize: 12, fontWeight: '700', color: THEME.textSub, letterSpacing: 1 }}>NĂM CÁ NHÂN</Text>
+              </View>
+              <Text style={[styles.ctStarNum, { color: NGU_HANH_COLORS[pyi.element] || THEME.accentGold }]}>{pyn}</Text>
+              <View style={[styles.ctElBadge, { backgroundColor: (NGU_HANH_COLORS[pyi.element] || '#888') + '25' }]}>
+                <View style={[styles.pillarElDot, { backgroundColor: NGU_HANH_COLORS[pyi.element] || '#888' }]} />
+                <Text style={[styles.ctElText, { color: NGU_HANH_COLORS[pyi.element] || THEME.textSub }]}>{pyi.element}</Text>
+              </View>
+              <Text style={styles.ctMeaning}>{pyi.meaning}</Text>
+            </View>
+          );
+        })()}
       </View>
     );
   };
@@ -576,7 +747,7 @@ export default function CalendarScreen() {
         {/* ─── Header ─── */}
         <LinearGradient colors={['#0D0D0F', '#121214']} style={styles.headerGradient}>
           <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => { setInpName(profile?.name || ''); setInpDOB(profile?.dob ? profile.dob.replace(/\//g, '-') : ''); setInpGioSinh(profile?.gioSinh != null ? String(profile.gioSinh) : ''); setProfileModal(true); }} style={styles.profileBtn}>
+            <TouchableOpacity onPress={() => { setInpName(profile?.name || ''); setInpDOB(profile?.dob ? profile.dob.replace(/\//g, '-') : ''); setInpGioSinh(profile?.gioSinh != null ? String(profile.gioSinh) : ''); setInpGender(profile?.gender || null); setProfileModal(true); }} style={styles.profileBtn}>
               <BlurView intensity={40} tint="dark" style={styles.profileBtnBlur}>
                 <Ionicons name="compass" size={26} color={profile ? THEME.accentGold : THEME.textSub} />
               </BlurView>
@@ -688,6 +859,15 @@ export default function CalendarScreen() {
             <View style={styles.inputGroup}>
               <Ionicons name="time-outline" size={16} color={THEME.textSub} style={{ marginRight: 8 }} />
               <TextInput style={styles.input} placeholder="Giờ Sinh (0-23, để trống nếu không biết)" placeholderTextColor={THEME.textSub} value={inpGioSinh} onChangeText={setInpGioSinh} keyboardType="numeric" />
+            </View>
+            <View style={styles.inputGroup}>
+              <Ionicons name="male-female-outline" size={16} color={THEME.textSub} style={{ marginRight: 8 }} />
+              <TouchableOpacity onPress={() => setInpGender(inpGender === null ? 'male' : inpGender === 'male' ? 'female' : null)} style={{ flex: 1, paddingVertical: 14 }}>
+                <Text style={{ color: inpGender ? THEME.textLight : THEME.textSub, fontSize: 14 }}>
+                  {inpGender === null ? 'Giới tính (chọn)' : inpGender === 'male' ? 'Nam' : 'Nữ'}
+                </Text>
+              </TouchableOpacity>
+              <Ionicons name={inpGender === 'male' ? 'man' : inpGender === 'female' ? 'woman' : 'help-circle-outline'} size={18} color={inpGender === 'male' ? THEME.accentBlue : inpGender === 'female' ? THEME.accentRed : THEME.textSub} />
             </View>
             <TouchableOpacity style={styles.saveBtn} onPress={saveProfile}>
               <LinearGradient colors={['#D4AF37', '#B8960C']} style={StyleSheet.absoluteFillObject} borderRadius={14} />
@@ -825,6 +1005,13 @@ const styles = StyleSheet.create({
 
   // ─── Prompt ───
   promptProfile: { alignItems: 'center', padding: 24, borderRadius: 16, borderWidth: 1, borderColor: THEME.accentGold, borderStyle: 'dashed', backgroundColor: 'rgba(212,175,55,0.04)' },
+
+  // ─── Mệnh ───
+  menhBox: { alignItems: 'center', backgroundColor: 'rgba(28,28,32,0.6)', borderRadius: 14, padding: 12, marginTop: 10, borderWidth: 1 },
+  menhBadge: { paddingHorizontal: 16, paddingVertical: 4, borderRadius: 12 },
+  menhBadgeText: { color: THEME.bg, fontWeight: '900', fontSize: 13, letterSpacing: 1 },
+  menhNapAm: { fontSize: 12, color: THEME.textSub, marginTop: 6, fontStyle: 'italic' },
+  menhMeaning: { fontSize: 12, color: THEME.textSub, textAlign: 'center', marginTop: 6, lineHeight: 18 },
   promptProfileText: { color: THEME.accentGold, textAlign: 'center', fontWeight: '700', fontSize: 13, marginTop: 8 },
 
   // ─── Profile Modal ───

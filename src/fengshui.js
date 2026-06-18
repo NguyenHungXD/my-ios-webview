@@ -352,3 +352,167 @@ export const getSaoHan = (namSinh, namHienTai) => {
   const starNum = ((namSinh + namHienTai) % 9) + 1;
   return { starNum, info: SAO_HAN_INFO[starNum] };
 };
+
+// ==================== MỆNH TƯỜNG MINH ====================
+// Lấy mệnh từ năm Can: Giáp/Ất=Mộc, Bính/Đinh=Hỏa, Mậu/Kỷ=Thổ, Canh/Tân=Kim, Nhâm/Quý=Thủy
+export const getSimpleMenh = (yearCanIdx) => NGU_HANH_ELEMENT_CAN[yearCanIdx] || 'Thổ';
+
+export const MENH_DESC = {
+  'Kim':  { color: '#FFFFFF', direction: 'Tây, Tây Bắc', season: 'Mùa thu',   meaning: 'Kim: kim loại, cứng cáp, quyết đoán. Người mệnh Kim mạnh mẽ, cương trực, có nguyên tắc.' },
+  'Mộc':  { color: '#2ECC71', direction: 'Đông, Đông Nam', season: 'Mùa xuân', meaning: 'Mộc: cây cối, sinh trưởng, linh hoạt. Người mệnh Mộc ôn hòa, phát triển, bao dung.' },
+  'Thủy': { color: '#3498DB', direction: 'Bắc', season: 'Mùa đông',   meaning: 'Thủy: nước, uyển chuyển, thông minh. Người mệnh Thủy khéo giao tiếp, thích nghi tốt.' },
+  'Hỏa':  { color: '#E74C3C', direction: 'Nam', season: 'Mùa hè',    meaning: 'Hỏa: lửa, nhiệt huyết, sáng tạo. Người mệnh Hỏa năng động, có tố chất lãnh đạo.' },
+  'Thổ':  { color: '#F1C40F', direction: 'Tây Nam, Đông Bắc, Trung Tâm', season: 'Cuối mùa', meaning: 'Thổ: đất, vững chắc, trung thành. Người mệnh Thổ ổn định, đáng tin cậy, thực tế.' }
+};
+
+// ==================== CUNG MỆNH (BÁT TRẠCH) ====================
+export const CUNG_MENH_MAP = {
+  male:   [null, 'Khảm', 'Ly', 'Cấn', 'Đoài', 'Càn', 'Khôn', 'Tốn', 'Chấn', 'Khôn'],
+  female: [null, 'Cấn', 'Càn', 'Đoài', 'Cấn', 'Ly', 'Khảm', 'Khôn', 'Chấn', 'Tốn'],
+};
+
+export const CUNG_MENH_INFO = {
+  'Càn':  { element: 'Kim',  direction: 'Tây Bắc', meaning: 'Thiên — quyền uy, lãnh đạo' },
+  'Đoài': { element: 'Kim',  direction: 'Tây',     meaning: 'Trạch — vui vẻ, giao tiếp, nghệ thuật' },
+  'Ly':   { element: 'Hỏa',  direction: 'Nam',     meaning: 'Ly — ánh sáng, danh vọng, sáng suốt' },
+  'Chấn': { element: 'Mộc',  direction: 'Đông',    meaning: 'Lôi — hành động, quyết đoán' },
+  'Tốn':  { element: 'Mộc',  direction: 'Đông Nam', meaning: 'Phong — nhẹ nhàng, thâm nhập, linh hoạt' },
+  'Khảm': { element: 'Thủy', direction: 'Bắc',     meaning: 'Thủy — trí tuệ, sâu sắc, thích nghi' },
+  'Cấn':  { element: 'Thổ',  direction: 'Đông Bắc', meaning: 'Sơn — ổn định, kiên định' },
+  'Khôn': { element: 'Thổ',  direction: 'Tây Nam',  meaning: 'Địa — nuôi dưỡng, bao dung' },
+};
+
+export const getCungMenh = (birthYear, gender) => {
+  const idx = birthYear % 9 || 9;
+  const map = gender === 'female' ? CUNG_MENH_MAP.female : CUNG_MENH_MAP.male;
+  const name = map[idx] || 'Khôn';
+  return { name, ...CUNG_MENH_INFO[name] };
+};
+
+// ==================== CUNG HOÀNG ĐẠO PHƯƠNG TÂY ====================
+export const WESTERN_ZODIAC = [
+  { name: 'Bạch Dương',  start: [3,21], end: [4,19], element: 'Hỏa',  meaning: 'Tiên phong, nhiệt huyết, dũng cảm.' },
+  { name: 'Kim Ngưu',    start: [4,20], end: [5,20], element: 'Thổ',  meaning: 'Kiên định, thực tế, trung thành.' },
+  { name: 'Song Tử',     start: [5,21], end: [6,20], element: 'Không Khí', meaning: 'Linh hoạt, thông minh, giao tiếp tốt.' },
+  { name: 'Cự Giải',     start: [6,21], end: [7,22], element: 'Thủy', meaning: 'Ấm áp, trực giác tốt, gia đình.' },
+  { name: 'Sư Tử',       start: [7,23], end: [8,22], element: 'Hỏa',  meaning: 'Tự tin, sáng tạo, lãnh đạo.' },
+  { name: 'Xử Nữ',       start: [8,23], end: [9,22], element: 'Thổ',  meaning: 'Tỉ mỉ, phân tích, cầu toàn.' },
+  { name: 'Thiên Bình',  start: [9,23], end: [10,22], element: 'Không Khí', meaning: 'Công bằng, hài hòa, ngoại giao.' },
+  { name: 'Bọ Cạp',      start: [10,23], end: [11,21], element: 'Thủy', meaning: 'Sâu sắc, quyết đoán, bí ẩn.' },
+  { name: 'Nhân Mã',     start: [11,22], end: [12,21], element: 'Hỏa', meaning: 'Phóng khoáng, lạc quan, thích khám phá.' },
+  { name: 'Ma Kết',      start: [12,22], end: [1,19], element: 'Thổ',  meaning: 'Tham vọng, kỷ luật, trách nhiệm.' },
+  { name: 'Bảo Bình',    start: [1,20], end: [2,18], element: 'Không Khí', meaning: 'Sáng tạo, độc lập, nhân văn.' },
+  { name: 'Song Ngư',    start: [2,19], end: [3,20], element: 'Thủy', meaning: 'Mơ mộng, nhạy cảm, nghệ thuật.' },
+];
+
+export const getWesternZodiac = (solarMonth, solarDay) => {
+  for (const z of WESTERN_ZODIAC) {
+    const [sM, sD] = z.start, [eM, eD] = z.end;
+    if (sM <= eM) {
+      if ((solarMonth > sM || (solarMonth === sM && solarDay >= sD)) && (solarMonth < eM || (solarMonth === eM && solarDay <= eD))) return z;
+    } else {
+      if ((solarMonth === sM && solarDay >= sD) || (solarMonth === eM && solarDay <= eD) || (solarMonth > sM || solarMonth < eM)) return z;
+    }
+  }
+  return null;
+};
+
+// ==================== PHÂN TÍCH TÊN ====================
+export const NAME_ELEMENT_MAP = {
+  'Lâm': 'Mộc', 'Mai': 'Mộc', 'Dương': 'Mộc', 'Đông': 'Mộc', 'Hùng': 'Mộc',
+  'Kiên': 'Mộc', 'Quỳnh': 'Mộc', 'Bích': 'Mộc', 'Nguyệt': 'Mộc', 'Hoa': 'Mộc',
+  'An': 'Mộc', 'Khánh': 'Mộc', 'Lan': 'Mộc', 'Cúc': 'Mộc', 'Đào': 'Mộc',
+  'Trúc': 'Mộc', 'Phương': 'Mộc', 'Hồng': 'Mộc', 'Liên': 'Mộc', 'Diệp': 'Mộc',
+  'Minh': 'Hỏa', 'Quang': 'Hỏa', 'Đạt': 'Hỏa', 'Long': 'Hỏa', 'Phúc': 'Hỏa',
+  'Sơn': 'Hỏa', 'Vinh': 'Hỏa', 'Huy': 'Hỏa', 'Lộc': 'Hỏa', 'Thịnh': 'Hỏa',
+  'Đăng': 'Hỏa', 'Châu': 'Hỏa', 'Dũng': 'Hỏa', 'Nam': 'Hỏa', 'Bằng': 'Hỏa',
+  'Ngọc': 'Hỏa', 'Trọng': 'Hỏa', 'Đức': 'Hỏa', 'Lửa': 'Hỏa', 'Hồ': 'Hỏa',
+  'Thành': 'Thổ', 'Tâm': 'Thổ', 'Trung': 'Thổ', 'Hiếu': 'Thổ', 'Bảo': 'Thổ',
+  'Nhân': 'Thổ', 'Đại': 'Thổ', 'Quốc': 'Thổ', 'Phú': 'Thổ', 'Thạch': 'Thổ',
+  'Cường': 'Thổ', 'Văn': 'Thổ', 'Tài': 'Thổ', 'Lợi': 'Thổ', 'Phước': 'Thổ',
+  'Thọ': 'Thổ', 'Nhật': 'Thổ', 'Quân': 'Thổ', 'Sỹ': 'Thổ', 'Nghĩa': 'Thổ',
+  'Kim': 'Kim', 'Hoàng': 'Kim', 'Tiến': 'Kim', 'Công': 'Kim', 'Việt': 'Kim',
+  'Tùng': 'Kim', 'Thanh': 'Kim', 'Định': 'Kim', 'Phong': 'Kim',
+  'Bạch': 'Kim', 'Ngân': 'Kim', 'Thiên': 'Kim', 'Anh': 'Kim',
+  'Tuấn': 'Kim', 'Quý': 'Kim', 'Khôi': 'Kim', 'Huyền': 'Kim', 'Trang': 'Kim',
+  'Hải': 'Thủy', 'Giang': 'Thủy', 'Hà': 'Thủy', 'Thu': 'Thủy',
+  'Thủy': 'Thủy', 'Vũ': 'Thủy', 'Ba': 'Thủy', 'Lưu': 'Thủy',
+  'Tuyền': 'Thủy', 'Bình': 'Thủy', 'Chi': 'Thủy', 'Nhi': 'Thủy', 'Vy': 'Thủy',
+  'Diệu': 'Thủy', 'Mây': 'Thủy', 'Đan': 'Thủy', 'Ly': 'Thủy', 'My': 'Thủy'
+};
+
+export const analyzeNameElements = (fullName) => {
+  if (!fullName) return { counts: {}, dominant: [], hasAmbiguous: true };
+  const syllables = fullName.split(/[\s_]+/).filter(Boolean);
+  const counts = { 'Kim': 0, 'Mộc': 0, 'Thủy': 0, 'Hỏa': 0, 'Thổ': 0, 'Không Xác Định': 0 };
+  syllables.forEach(syl => {
+    const found = NAME_ELEMENT_MAP[syl] || NAME_ELEMENT_MAP[syl.charAt(0).toUpperCase() + syl.slice(1).toLowerCase()];
+    if (found) counts[found]++;
+    else counts['Không Xác Định']++;
+  });
+  const known = Object.entries(counts).filter(([k]) => k !== 'Không Xác Định');
+  const maxCount = Math.max(...known.map(([_, v]) => v), 0);
+  const dominant = known.filter(([k, v]) => v === maxCount && v > 0).map(([k]) => k);
+  return { counts, dominant, hasAmbiguous: counts['Không Xác Định'] > 0 };
+};
+
+// ==================== NĂM CÁ NHÂN ====================
+export const getPersonalYearNumber = (solarDay, solarMonth, solarYear) => {
+  let sum = solarDay + solarMonth + solarYear;
+  while (sum > 9) sum = String(sum).split('').reduce((a, b) => a + parseInt(b), 0);
+  return sum;
+};
+
+export const PERSONAL_YEAR_INFO = {
+  1: { element: 'Hỏa', meaning: 'Khởi đầu mới, cơ hội, độc lập. Năm của hành động và tiên phong.' },
+  2: { element: 'Thổ', meaning: 'Hợp tác, cân bằng, kiên nhẫn. Năm của xây dựng mối quan hệ.' },
+  3: { element: 'Mộc', meaning: 'Sáng tạo, giao tiếp, niềm vui. Năm của thể hiện bản thân.' },
+  4: { element: 'Thổ', meaning: 'Ổn định, kỷ luật, làm việc chăm chỉ. Năm của xây dựng nền tảng.' },
+  5: { element: 'Thủy', meaning: 'Thay đổi, tự do, phiêu lưu. Năm của khám phá và biến động.' },
+  6: { element: 'Kim', meaning: 'Trách nhiệm, gia đình, hài hòa. Năm của yêu thương và chăm sóc.' },
+  7: { element: 'Kim', meaning: 'Chiêm nghiệm, học hỏi, tâm linh. Năm của suy ngẫm và phát triển.' },
+  8: { element: 'Thổ', meaning: 'Quyền lực, thịnh vượng, thành tựu. Năm của sự nghiệp và tài chính.' },
+  9: { element: 'Hỏa', meaning: 'Kết thúc, buông bỏ, nhân đạo. Năm của hoàn tất và cho đi.' },
+};
+
+// ==================== MỆNH-BASED DAY ADVICE ====================
+export const MENH_DAY_ADVICE = {
+  'Kim': { good: ['Thổ', 'Kim'], bad: ['Hỏa'], bestActivity: 'Hợp đồng, tài chính, luật pháp', worstActivity: 'Đầu tư mạo hiểm, lửa, xung đột' },
+  'Mộc': { good: ['Thủy', 'Mộc'], bad: ['Kim'], bestActivity: 'Sáng tạo, học tập, khởi nghiệp', worstActivity: 'Tranh cãi, kiện tụng, phá dỡ' },
+  'Thủy': { good: ['Kim', 'Thủy'], bad: ['Thổ'], bestActivity: 'Giao tiếp, du lịch, kết bạn', worstActivity: 'Xây dựng, đầu tư bất động sản' },
+  'Hỏa': { good: ['Mộc', 'Hỏa'], bad: ['Thủy'], bestActivity: 'Lãnh đạo, trình diễn, kinh doanh', worstActivity: 'Vay mượn, lặn biển, du lịch sông nước' },
+  'Thổ': { good: ['Hỏa', 'Thổ'], bad: ['Mộc'], bestActivity: 'Mua bán nhà đất, cưới hỏi, xây cất', worstActivity: 'Phá rừng, chặt phá, chuyển nhà' },
+};
+
+export const getMenhDayAdvice = (menhElement, dayElement) => {
+  const advice = MENH_DAY_ADVICE[menhElement];
+  if (!advice) return null;
+  if (advice.good.includes(dayElement)) return { verdict: 'Hợp', color: THEME.accentGreen, desc: `Ngày ${dayElement} hợp mệnh ${menhElement}. Nên: ${advice.bestActivity}.` };
+  if (advice.bad.includes(dayElement)) return { verdict: 'Kỵ', color: THEME.accentRed, desc: `Ngày ${dayElement} không hợp mệnh ${menhElement}. Tránh: ${advice.worstActivity}.` };
+  return { verdict: 'Bình', color: THEME.textSub, desc: `Ngày ${dayElement} trung tính với mệnh ${menhElement}.` };
+};
+
+export const getMenhDayScore = (menhElement, dayElement) => {
+  if (menhElement === dayElement) return { score: 2, reason: `${dayElement} ngày phù trợ ${menhElement} mệnh.` };
+  if (NGU_HANH_SINH[dayElement] === menhElement) return { score: 3, reason: `${dayElement} ngày sinh ${menhElement} mệnh — rất tốt.` };
+  if (NGU_HANH_KHAC[dayElement] === menhElement) return { score: -3, reason: `${dayElement} ngày khắc ${menhElement} mệnh — xấu.` };
+  if (NGU_HANH_SINH[menhElement] === dayElement) return { score: 1, reason: `${menhElement} mệnh sinh ${dayElement} — hao khí nhẹ.` };
+  if (NGU_HANH_KHAC[menhElement] === dayElement) return { score: -1, reason: `${menhElement} mệnh khắc ${dayElement} — tiêu hao.` };
+  return { score: 0, reason: `${dayElement} không sinh khắc với ${menhElement} mệnh.` };
+};
+
+// ==================== PHÂN TÍCH NGŨ HÀNH KHUYẾT THIẾU ====================
+export const analyzeElementBalance = (pillars) => {
+  const counts = { 'Kim': 0, 'Mộc': 0, 'Thủy': 0, 'Hỏa': 0, 'Thổ': 0 };
+  pillars.forEach(p => { if (p && p.element && counts[p.element] !== undefined) counts[p.element]++; });
+  const total = pillars.filter(p => p && p.element).length || 1;
+  const threshold = Math.max(1, Math.round(total * 0.15));
+  const missing = [], excess = [], balanced = [];
+  const maxCount = Math.max(...Object.values(counts));
+  for (const [el, cnt] of Object.entries(counts)) {
+    if (cnt === 0) missing.push(el);
+    else if (cnt >= maxCount && cnt >= threshold) excess.push(el);
+    else balanced.push(el);
+  }
+  return { counts, total, missing, excess, balanced };
+};
