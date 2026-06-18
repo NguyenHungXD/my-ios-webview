@@ -111,8 +111,7 @@ export default function WeatherScreen() {
     setIsLoading(true); setErrorMsg(null);
     addLog(`Fetching weather for fixed location: ${FIXED_LAT}, ${FIXED_LON}`);
     try {
-      // Skip GPS - use hardcoded Vũng Tàu
-      setCity(FIXED_CITY);
+      // Using hardcoded Vũng Tàu coordinates (no GPS)
 
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${FIXED_LAT}&longitude=${FIXED_LON}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,pressure_msl,visibility,dew_point_2m&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,uv_index_max,wind_speed_10m_max,wind_direction_10m_dominant&timezone=auto&forecast_days=5`;
 
