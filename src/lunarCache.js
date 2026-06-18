@@ -21,8 +21,9 @@ export function createCache() {
         [y, mm, dd] = key.split('-').map(Number);
       }
       const result = amlich.convertSolar2Lunar(dd, mm, y, 7);
-      _lunarMap.set(key, result);
-      return result;
+      const safeResult = (result && Array.isArray(result) && result.length >= 3) ? result : [1, 1, 1900, 0];
+      _lunarMap.set(key, safeResult);
+      return safeResult;
     },
 
     getJD(dateStrOrY, m, d) {
@@ -35,8 +36,9 @@ export function createCache() {
         [y, mm, dd] = key.split('-').map(Number);
       }
       const jd = amlich.jdFromDate(dd, mm, y);
-      _jdMap.set(key, jd);
-      return jd;
+      const safeJd = (typeof jd === 'number' && !isNaN(jd)) ? jd : 2459580;
+      _jdMap.set(key, safeJd);
+      return safeJd;
     },
 
     precomputeMonth(year, month) {
@@ -45,7 +47,7 @@ export function createCache() {
         const key = dateKey(year, month, day);
         if (!_lunarMap.has(key)) {
           const lunar = amlich.convertSolar2Lunar(day, month, year, 7);
-          _lunarMap.set(key, lunar);
+          _lunarMap.set(key, (lunar && Array.isArray(lunar) && lunar.length >= 3) ? lunar : [1, 1, year, 0]);
         }
         if (!_jdMap.has(key)) {
           _jdMap.set(key, amlich.jdFromDate(day, month, year));

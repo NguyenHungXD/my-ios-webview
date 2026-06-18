@@ -75,7 +75,7 @@ export default function WeatherScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const bgColors = ['rgba(52,152,219,0.07)', 'rgba(46,204,113,0.05)', 'rgba(241,196,15,0.05)', 'rgba(231,76,60,0.05)', 'rgba(155,89,182,0.05)'];
 
-  useEffect(() => { Promise.all([fetchWeather(), fetchTasksFromGoogle()]); }, []);
+  useEffect(() => { Promise.all([fetchWeather(), fetchTasksFromGoogle()]).catch(() => {}); }, []);
 
   useEffect(() => {
     if (weatherData) {
@@ -122,11 +122,12 @@ export default function WeatherScreen() {
       for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
         const row = lines[i].split('","').map(v => v.replace(/^"|"$/g, ''));
+        if (row.length < 2) continue;
         const dateStr = row[0], jobStr = row[1];
         if (!dateStr || !jobStr) continue;
-        const fromH = (row[2] || '').padStart(2, '0'), fromM = (row[3] || '').padStart(2, '0');
-        const toH = (row[4] || '').padStart(2, '0'), toM = (row[5] || '').padStart(2, '0');
-        const status = (row[6] || '').toUpperCase() || 'WAIT';
+        const fromH = (row[2] || '00').padStart(2, '0'), fromM = (row[3] || '00').padStart(2, '0');
+        const toH = (row[4] || '00').padStart(2, '0'), toM = (row[5] || '00').padStart(2, '0');
+        const status = (row[6] || 'WAIT').toUpperCase();
         const parts = dateStr.split(/[-/]/);
         if (parts.length === 3) {
           const std = `${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}-${parts[2]}`;
@@ -202,7 +203,7 @@ export default function WeatherScreen() {
   const isWeekend = (dateStr) => { try { const d = new Date(dateStr); if (isNaN(d.getTime())) return { isSat: false, isSun: false }; return { isSat: d.getDay() === 6, isSun: d.getDay() === 0 }; } catch (e) { return { isSat: false, isSun: false }; } };
 
   const handleDayPress = (dateStr) => {
-    Haptics.selectionAsync();
+    try { Haptics.selectionAsync(); } catch {}
     const parts = dateStr.split('-');
     const fmt = `${parts[2]}-${parts[1]}-${parts[0]}`;
     setSelectedDateStr(`${parts[2]}/${parts[1]}/${parts[0]}`);

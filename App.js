@@ -1,5 +1,5 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
-import { StyleSheet, View, Text, Image, Alert } from 'react-native';
+import React, { useState, useEffect, createContext, useContext, Component } from 'react';
+import { StyleSheet, View, Text, Image, Alert, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -16,14 +16,32 @@ import TaskScreen from './src/screens/TaskScreen';
 
 // --- BỘ BẮT LỖI TOÀN CỤC (GLOBAL ERROR HANDLER) ---
 if (!__DEV__) {
-  const defaultErrorHandler = global.ErrorUtils.getGlobalHandler();
-  global.ErrorUtils.setGlobalHandler((error, isFatal) => {
-    Alert.alert(
-      'Lỗi nghiêm trọng (JS Crash)',
-      `Mã lỗi: ${error.message}\nBạn hãy chụp màn hình này gửi lại cho lập trình viên.`,
-      [{ text: 'OK' }]
-    );
-  });
+  if (global.ErrorUtils && typeof global.ErrorUtils.setGlobalHandler === 'function') {
+    const defaultHandler = global.ErrorUtils.getGlobalHandler ? global.ErrorUtils.getGlobalHandler() : null;
+    global.ErrorUtils.setGlobalHandler((error, isFatal) => {
+      Alert.alert('Lỗi nghiêm trọng (JS Crash)', `Mã lỗi: ${error.message}\nBạn hãy chụp màn hình này gửi lại cho lập trình viên.`, [{ text: 'OK' }]);
+    });
+  }
+}
+
+// --- ERROR BOUNDARY (bắt lỗi render) ---
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, backgroundColor: '#121214', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#E74C3C', marginBottom: 12 }}>⚠ Ứng dụng gặp lỗi</Text>
+          <Text style={{ fontSize: 14, color: '#A0A0A0', textAlign: 'center', marginBottom: 24, lineHeight: 20 }}>{this.state.error?.message || 'Không thể hiển thị nội dung.'}</Text>
+          <TouchableOpacity onPress={() => { this.setState({ hasError: false, error: null }); }} style={{ backgroundColor: '#D4AF37', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 12 }}>
+            <Text style={{ color: '#121214', fontWeight: 'bold' }}>THỬ LẠI</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 const Tab = createBottomTabNavigator();
@@ -98,6 +116,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <MenuContext.Provider value={{ menuItems, setMenuItems, activeUrl, setActiveUrl }}>
+        <ErrorBoundary>
         <NavigationContainer>
           <StatusBar style="light" backgroundColor={THEME_COLOR} />
           <Tab.Navigator
@@ -189,6 +208,7 @@ export default function App() {
             />
           </Tab.Navigator>
         </NavigationContainer>
+        </ErrorBoundary>
       </MenuContext.Provider>
     </SafeAreaProvider>
   );

@@ -272,7 +272,7 @@ export default function CalendarScreen() {
       const dayChiIdx = (jd + 1) % 12;
       const dayChi = CHI_ARRAY[dayChiIdx];
       const isHoangDao = getGioHoangDao(dayChi).length > 0;
-      const thapThanKey = THAP_THAN_MATRIX[myCanIdx][dayCanIdx];
+      const thapThanKey = (myCanIdx >= 0 && THAP_THAN_MATRIX[myCanIdx]) ? THAP_THAN_MATRIX[myCanIdx][dayCanIdx] : 'Bình Thường';
       const dayEl = NGU_HANH_ELEMENT_CAN[dayCanIdx] || 'Thổ';
       const menhSc = getMenhDayScore(menhEl, dayEl);
       const baseSc = getDayScore(getTruc(lunar[1], dayChi), profile.yearChi, dayChi, thapThanKey, isHoangDao);
@@ -349,8 +349,8 @@ export default function CalendarScreen() {
       let baziReading = null;
       if (userProfile) {
         const myCanIdx = CAN_ARRAY.indexOf(userProfile.nhatCan);
-        const thapThanKey = THAP_THAN_MATRIX[myCanIdx][dayCanIdx];
-        baziReading = { thapThan: { key: thapThanKey, ...THAP_THAN_DESC[thapThanKey] }, diaChi: checkDiaChi(userProfile.yearChi, dayChi) };
+        const thapThanKey = (myCanIdx >= 0 && THAP_THAN_MATRIX[myCanIdx]) ? THAP_THAN_MATRIX[myCanIdx][dayCanIdx] : 'Bình Thường';
+        baziReading = { thapThan: { key: thapThanKey, ...(THAP_THAN_DESC[thapThanKey] || { desc: '', color: THEME.textSub }) }, diaChi: checkDiaChi(userProfile.yearChi, dayChi) };
       }
       setDetailInfo({ lunarStr: `Mùng ${lD} tháng ${lM} năm ${lY}`, namCanChi: `${yearCan} ${yearChi}`, ngayCanChi: `${dayCan} ${dayChi}`, truc, isRằm: lD === 15, isMung1: lD === 1, hoangDaoHours, holiday, baziReading, tuTru, nguHanhRelations, cuuTinh, tietKhi, isHoangDao, saoHan, dayCanIdx });
     } catch (e) { setDetailInfo(null); }
