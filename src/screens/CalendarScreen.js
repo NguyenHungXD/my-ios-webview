@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput, Alert, Platform, Animated, PanResponder, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput, Alert, Platform, Animated, PanResponder, Dimensions, Share } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -28,8 +28,9 @@ const THEME = {
   moonColor: '#F39C12',
 };
 
-const TABS = ['TỨ TRỤ', 'THẬP THẦN', 'NGŨ HÀNH', 'CỬU TINH'];
-const TAB_ICONS = ['git-network', 'sparkles', 'color-palette', 'star'];
+const TABS = ['TỨ TRỤ', 'THẬP THẦN', 'NGŨ HÀNH', 'CỬU TINH', 'CÔNG VIỆC'];
+const TAB_ICONS = ['git-network', 'sparkles', 'color-palette', 'star', 'briefcase'];
+const SPREADSHEET_ID = '1Od2c46Msy7FraALvf4YWyvRgfHxhfBHpGr0djUQdnq8';
 
 const toDateStr = (date) => {
   const y = date.getFullYear();
@@ -141,9 +142,20 @@ export default function CalendarScreen() {
   const [inpDOB, setInpDOB] = useState('');
   const [inpGioSinh, setInpGioSinh] = useState('');
 
-  useEffect(() => { loadProfile(); }, []);
+  // Tasks integration
+  const [allTasks, setAllTasks] = useState([]);
+  const [selectedDayTasks, setSelectedDayTasks] = useState([]);
+
+  useEffect(() => { loadProfile(); fetchTasks(); }, []);
   useEffect(() => { generateCalendar(currentDate); }, [currentDate]);
   useEffect(() => { updateDetailInfo(selectedDate, profile); }, [selectedDate, profile]);
+  useEffect(() => {
+    if (detailModalVisible && selectedDate && allTasks.length) {
+      const key = `${String(selectedDate.getDate()).padStart(2,'0')}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${selectedDate.getFullYear()}`;
+      const dayTasks = allTasks.filter(t => t.dateStr === key).sort((a,b) => a.timeVal - b.timeVal);
+      setSelectedDayTasks(dayTasks);
+    }
+  }, [detailModalVisible, selectedDate, allTasks]);
 
   const loadProfile = async () => {
     try {
@@ -184,6 +196,53 @@ export default function CalendarScreen() {
     await AsyncStorage.removeItem('USER_BAZI_PROFILE');
     setProfile(null); setProfileModal(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  };
+
+  // ─── Task Integration ───
+  const fetchTasks = async () => {
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Abc`;
+      const resp = await fetch(url);
+      const text = await resp.text();
+      const lines = text.split('\n');
+      const parsed = [];
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const row = lines[i].split('","').map(v => v.replace(/^"|"$/g, ''));
+        const dateStr = row[0], job = row[1];
+        if (!dateStr || !job) continue;
+        const fH = row[2]?.padStart(2,'0') || '00', fM = row[3]?.padStart(2,'0') || '00';
+        const tH = row[4]?.padStart(2,'0') || '00', tM = row[5]?.padStart(2,'0') || '00';
+        const status = row[6]?.toUpperCase() || 'WAIT';
+        const parts = dateStr.split(/[-/]/);
+        if (parts.length === 3) {
+          const std = `${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}-${parts[2]}`;
+          parsed.push({ id: `cloud_${i}`, dateStr: std, job, fromTime: `${fH}:${fM}`, toTime: `${tH}:${tM}`, timeVal: parseInt(fH)*60+parseInt(fM), status });
+        }
+      }
+      const localStr = await AsyncStorage.getItem('LOCAL_TASKS');
+      if (localStr) JSON.parse(localStr).forEach(t => parsed.push({ id: t.id, dateStr: t.dateStr, job: t.job, fromTime: '00:00', toTime: '23:59', timeVal: 0, status: 'LOCAL' }));
+      setAllTasks(parsed);
+    } catch (e) { /* silent */ }
+  };
+
+  const getTasksForDate = (date) => {
+    const key = `${String(date.getDate()).padStart(2,'0')}-${String(date.getMonth()+1).padStart(2,'0')}-${date.getFullYear()}`;
+    return allTasks.filter(t => t.dateStr === key);
+  };
+
+  // ─── Share ───
+  const handleShare = async () => {
+    if (!detailInfo) return;
+    let text = `📅 ${selectedDate.getDate()}/${selectedDate.getMonth()+1}/${selectedDate.getFullYear()}\n`;
+    text += `🌙 ${detailInfo.lunarStr}\n`;
+    text += `🔮 Can Chi: ${detailInfo.namCanChi} | ${detailInfo.ngayCanChi}\n`;
+    text += `⭐ Trực: ${detailInfo.truc}\n`;
+    if (detailInfo.hoangDaoHours?.length) text += `☀️ Giờ Hoàng Đạo: ${detailInfo.hoangDaoHours.join(', ')}\n`;
+    if (detailInfo.holiday) text += `🎉 ${detailInfo.holiday}\n`;
+    if (detailInfo.baziReading) text += `📊 Thập Thần: ${detailInfo.baziReading.thapThan.key}\n`;
+    text += `\n— Ứng dụng Lịch Vạn Niên Pro`;
+    try { await Share.share({ message: text }); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch (e) {}
   };
 
   const computeDayScores = (year, month) => {
@@ -233,7 +292,7 @@ export default function CalendarScreen() {
       const monthCan = CAN_ARRAY[monthCanIdx], monthChi = CHI_ARRAY[monthChiIdx];
       const truc = getTruc(lM, dayChi);
       const hoangDaoHours = getGioHoangDao(dayChi);
-      const holiday = getHoliday(lD, lM);
+      const holiday = getHoliday(lD, lM, d, m);
 
       const tuTru = {
         year: { can: yearCan, chi: yearChi, element: NGU_HANH_ELEMENT_CAN[yearCanIdx], napAm: LUC_THAP_HOA_GIAP[`${yearCan} ${yearChi}`] || '' },
@@ -264,7 +323,12 @@ export default function CalendarScreen() {
     } catch (e) { setDetailInfo(null); }
   };
 
-  const handleDayPress = (date) => { if (date) { Haptics.selectionAsync(); setSelectedDate(date); setDetailModalVisible(true); setActiveTab(0); } };
+  const handleDayPress = (date) => {
+    if (date) { Haptics.selectionAsync(); setSelectedDate(date); setDetailModalVisible(true); setActiveTab(0);
+      const key = `${String(date.getDate()).padStart(2,'0')}-${String(date.getMonth()+1).padStart(2,'0')}-${date.getFullYear()}`;
+      setSelectedDayTasks(allTasks.filter(t => t.dateStr === key).sort((a,b) => a.timeVal - b.timeVal));
+    }
+  };
   const isSelected = (date) => date && date.toDateString() === selectedDate.toDateString();
   const getDateKey = (date) => date ? toDateStr(date) : '';
   const getScore = (date) => date ? dayScores[toDateStr(date)] || 0 : 0;
@@ -431,8 +495,38 @@ export default function CalendarScreen() {
     );
   };
 
+  // ─── Tab 4: CÔNG VIỆC ───
+  const renderTasks = () => (
+    <View style={styles.tabContent}>
+      {selectedDayTasks.length === 0 ? (
+        <View style={{ alignItems: 'center', padding: 20 }}>
+          <Ionicons name="cafe-outline" size={40} color={THEME.textSub} />
+          <Text style={{ color: THEME.textSub, textAlign: 'center', marginTop: 10, fontStyle: 'italic' }}>Không có công việc nào trong ngày này.</Text>
+        </View>
+      ) : (
+        selectedDayTasks.map((t, idx) => {
+          const c = { MISSED: THEME.accentRed, DONE: THEME.accentGreen, LOCAL: THEME.accentBlue };
+          const sc = c[t.status] || THEME.accentYellow;
+          return (
+            <View key={t.id} style={[styles.ttCard, { borderLeftColor: sc, borderLeftWidth: 3 }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ fontSize: 12, color: THEME.textSub }}>
+                  <Ionicons name="time-outline" size={12} color={THEME.textSub} /> {t.fromTime} - {t.toTime}
+                </Text>
+                <View style={{ backgroundColor: sc + '20', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ fontSize: 9, fontWeight: 'bold', color: sc }}>{t.status}</Text>
+                </View>
+              </View>
+              <Text style={{ fontSize: 15, color: THEME.textLight, fontWeight: '500' }}>{t.job}</Text>
+            </View>
+          );
+        })
+      )}
+    </View>
+  );
+
   const renderActiveTab = () => {
-    switch (activeTab) { case 0: return renderTuTru(); case 1: return renderThapThan(); case 2: return renderNguHanh(); case 3: return renderCuuTinh(); default: return null; }
+    switch (activeTab) { case 0: return renderTuTru(); case 1: return renderThapThan(); case 2: return renderNguHanh(); case 3: return renderCuuTinh(); case 4: return renderTasks(); default: return null; }
   };
 
   // ═══════════════════════════════════════
@@ -480,8 +574,11 @@ export default function CalendarScreen() {
                 const lunar = lunarCache.getLunar(getDateKey(dateObj));
                 const isRằm = lunar[0] === 15;
                 const isMung1 = lunar[0] === 1;
-                const isHoliday = !!getHoliday(lunar[0], lunar[1]);
+                const isHoliday = !!getHoliday(lunar[0], lunar[1], dateObj.getDate(), dateObj.getMonth() + 1);
                 const score = getScore(dateObj);
+                const tasksForDay = getTasksForDate(dateObj);
+                const hasTask = tasksForDay.length > 0;
+                const hasMissed = tasksForDay.some(t => t.status === 'MISSED');
                 let bgTint = null;
                 if (!isSel) { if (score > 2) bgTint = 'rgba(46,204,113,0.12)'; else if (score < 0) bgTint = 'rgba(231,76,60,0.09)'; }
                 return (
@@ -491,6 +588,7 @@ export default function CalendarScreen() {
                     {isHoliday && <View style={styles.holidayDot} />}
                     <Text style={[styles.solarText, isWeekend && { color: THEME.weekendText }, isSel && { color: THEME.bg, fontWeight: '900' }]}>{dateObj.getDate()}</Text>
                     <Text style={[styles.lunarText, isMung1 && { color: THEME.accentGold, fontWeight: '700' }, isSel && { color: THEME.bg }]}>{lunar[0] === 1 ? `${lunar[0]}/${lunar[1]}` : lunar[0]}</Text>
+                    {hasTask && <View style={[styles.taskDot, hasMissed && styles.taskDotMissed]} />}
                   </TouchableOpacity>
                 );
               })}
@@ -510,7 +608,12 @@ export default function CalendarScreen() {
           {detailInfo && (
             <View>
               <View style={styles.detailHeader}>
-                <Text style={styles.detailDateMain}>{selectedDate.getDate()}/{selectedDate.getMonth() + 1}/{selectedDate.getFullYear()}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <Text style={styles.detailDateMain}>{selectedDate.getDate()}/{selectedDate.getMonth() + 1}/{selectedDate.getFullYear()}</Text>
+                  <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
+                    <Ionicons name="share-outline" size={16} color={THEME.accentGold} />
+                  </TouchableOpacity>
+                </View>
                 <Text style={styles.detailLunarMain}>{detailInfo.lunarStr}</Text>
                 <View style={styles.detailBadgeRow}>
                   {detailInfo.holiday && <View style={styles.detailBadge}><Text style={styles.detailBadgeText}>🎉 {detailInfo.holiday}</Text></View>}
@@ -590,6 +693,8 @@ const styles = StyleSheet.create({
   todayCell: { borderWidth: 1.5, borderColor: THEME.accentGold, backgroundColor: 'rgba(212,175,55,0.08)' },
   moonDot: { position: 'absolute', top: 2, right: 2, width: 7, height: 7, borderRadius: 4, backgroundColor: THEME.moonColor },
   holidayDot: { position: 'absolute', top: 3, left: 3, width: 5, height: 5, borderRadius: 3, backgroundColor: THEME.accentRed },
+  taskDot: { position: 'absolute', bottom: 3, right: 3, width: 6, height: 6, borderRadius: 3, backgroundColor: THEME.accentBlue },
+  taskDotMissed: { backgroundColor: THEME.accentRed },
   solarText: { fontSize: 17, color: THEME.textLight, fontWeight: '700' },
   lunarText: { fontSize: 9, color: THEME.textSub, marginTop: 1, fontWeight: '500' },
 
@@ -600,6 +705,7 @@ const styles = StyleSheet.create({
 
   // ─── Detail Header ───
   detailHeader: { alignItems: 'center', marginBottom: 4 },
+  shareBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(212,175,55,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)' },
   detailDateMain: { fontSize: 28, fontWeight: '900', color: THEME.textLight, letterSpacing: 1 },
   detailLunarMain: { fontSize: 14, color: THEME.accentGold, fontStyle: 'italic', marginTop: 2, fontWeight: '600' },
   detailBadgeRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 8 },

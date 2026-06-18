@@ -131,18 +131,30 @@ export const getGioHoangDao = (dayChiStr) => {
 };
 
 // ==================== NGÀY LỄ ====================
-export const getHoliday = (lunarDay, lunarMonth) => {
-  const holidays = {
-    '1/1': 'Tết Nguyên Đán',
-    '15/1': 'Tết Nguyên Tiêu',
-    '10/3': 'Giỗ Tổ Hùng Vương',
-    '15/4': 'Lễ Phật Đản',
-    '5/5': 'Tết Đoan Ngọ',
-    '15/7': 'Lễ Vu Lan',
-    '15/8': 'Tết Trung Thu',
-    '23/12': 'Ông Công Ông Táo'
-  };
-  return holidays[`${lunarDay}/${lunarMonth}`];
+// Lunar holidays
+export const LUNAR_HOLIDAYS = {
+  '1/1': 'Tết Nguyên Đán',
+  '15/1': 'Tết Nguyên Tiêu',
+  '10/3': 'Giỗ Tổ Hùng Vương',
+  '15/4': 'Lễ Phật Đản',
+  '5/5': 'Tết Đoan Ngọ',
+  '15/7': 'Lễ Vu Lan',
+  '15/8': 'Tết Trung Thu',
+  '23/12': 'Ông Công Ông Táo'
+};
+
+// Solar holidays (cố định theo dương lịch)
+export const SOLAR_HOLIDAYS = {
+  '1/1': 'Tết Dương Lịch',
+  '30/4': 'Ngày Giải Phóng',
+  '1/5': 'Quốc Tế Lao Động',
+  '2/9': 'Quốc Khánh'
+};
+
+export const getHoliday = (lunarDay, lunarMonth, solarDay, solarMonth) => {
+  const lunarKey = `${lunarDay}/${lunarMonth}`;
+  const solarKey = `${solarDay}/${solarMonth}`;
+  return LUNAR_HOLIDAYS[lunarKey] || SOLAR_HOLIDAYS[solarKey] || null;
 };
 
 // ==================== NGŨ HÀNH ====================
