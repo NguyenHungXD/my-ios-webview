@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useContext } from 'react';
+import React, { useState, useRef, useEffect, useContext, useCallback } from 'react';
 import { View, StyleSheet, Linking, TouchableOpacity, Text, Platform, ActivityIndicator, Animated, Share, Dimensions, StatusBar } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';

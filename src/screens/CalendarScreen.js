@@ -368,17 +368,30 @@ export default function CalendarScreen() {
 
   // ─── Tab Bar ───
   const renderTabBar = () => {
-    const tabW = (SCREEN_W - 40) / TABS.length;
+    const tabW = (SCREEN_W - 40) / 3;
+    const row1 = TABS.slice(0, 3);
+    const row2 = TABS.slice(3, 6);
+    const renderRow = (row, startIdx) => (
+      <View style={{ flexDirection: 'row', position: 'relative' }}>
+        {row.map((tab, idx) => {
+          const globalIdx = startIdx + idx;
+          return (
+            <TouchableOpacity key={globalIdx} style={styles.tabBtn} onPress={() => { Haptics.selectionAsync(); setActiveTab(globalIdx); }}>
+              <Ionicons name={TAB_ICONS[globalIdx]} size={14} color={activeTab === globalIdx ? THEME.accentGold : THEME.textSub} />
+              <Text style={[styles.tabBtnText, activeTab === globalIdx && styles.tabBtnTextActive]}>{tab}</Text>
+            </TouchableOpacity>
+          );
+        })}
+        {activeTab >= startIdx && activeTab < startIdx + 3 && (
+          <Animated.View style={[styles.tabIndicator, { width: tabW - 12, transform: [{ translateX: Animated.multiply(Animated.subtract(tabAnim, startIdx), tabW) }] }]} />
+        )}
+      </View>
+    );
     return (
       <View style={styles.tabBarOuter}>
         <BlurView intensity={60} tint="dark" style={styles.tabBarBlur}>
-          {TABS.map((tab, idx) => (
-            <TouchableOpacity key={idx} style={styles.tabBtn} onPress={() => { Haptics.selectionAsync(); setActiveTab(idx); }}>
-              <Ionicons name={TAB_ICONS[idx]} size={14} color={activeTab === idx ? THEME.accentGold : THEME.textSub} />
-              <Text style={[styles.tabBtnText, activeTab === idx && styles.tabBtnTextActive]}>{tab}</Text>
-            </TouchableOpacity>
-          ))}
-          <Animated.View style={[styles.tabIndicator, { width: tabW - 12, transform: [{ translateX: Animated.multiply(tabAnim, tabW) }] }]} />
+          {renderRow(row1, 0)}
+          {renderRow(row2, 3)}
         </BlurView>
       </View>
     );
@@ -1071,7 +1084,7 @@ const styles = StyleSheet.create({
 
   // ─── Tab Bar ───
   tabBarOuter: { marginTop: 10, marginBottom: 2 },
-  tabBarBlur: { flexDirection: 'row', backgroundColor: 'rgba(20,20,24,0.6)', borderRadius: 14, padding: 3, position: 'relative', overflow: 'hidden' },
+  tabBarBlur: { flexDirection: 'column', backgroundColor: 'rgba(20,20,24,0.6)', borderRadius: 14, padding: 3, position: 'relative', overflow: 'hidden' },
   tabBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 9, gap: 4, zIndex: 2 },
   tabBtnText: { fontSize: 10, fontWeight: '700', color: THEME.textSub, letterSpacing: 0.5 },
   tabBtnTextActive: { color: THEME.accentGold },
