@@ -71,7 +71,7 @@ export default function WeatherScreen() {
   const detailAnim = useRef(new Animated.Value(0)).current;
   const alertPulse = useRef(new Animated.Value(1)).current;
   const lastFetch = useRef(0);
-  const appState = useRef(AppState.currentState);
+  const appState = useRef('active');
   const scrollY = useRef(new Animated.Value(0)).current;
   const bgColors = ['rgba(52,152,219,0.07)', 'rgba(46,204,113,0.05)', 'rgba(241,196,15,0.05)', 'rgba(231,76,60,0.05)', 'rgba(155,89,182,0.05)'];
 
@@ -141,7 +141,7 @@ export default function WeatherScreen() {
 
   const fetchWeather = async () => {
     setIsLoading(true); setErrorMsg(null);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') { setErrorMsg('Bạn chưa cấp quyền Vị trí.'); setIsLoading(false); return; }
@@ -151,9 +151,15 @@ export default function WeatherScreen() {
         let geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
         if (geocode && geocode.length > 0) setCity((geocode[0].subregion || geocode[0].city || geocode[0].region || 'VỊ TRÍ CỦA BẠN').toUpperCase());
       } catch (e) {}
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,pressure_msl,dew_point_2m&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,uv_index_max,wind_speed_10m_max,wind_direction_10m_dominant&timezone=auto&forecast_days=5`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,pressure_msl,visibility,dew_point_2m&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,uv_index_max,wind_speed_10m_max,wind_direction_10m_dominant&timezone=auto&forecast_days=5`;
       const response = await fetch(url);
       const data = await response.json();
+      // Validate response before using
+      if (data.error || !data.current || !data.daily) {
+        setErrorMsg('Không thể tải dữ liệu thời tiết.');
+        setIsLoading(false);
+        return;
+      }
       setWeatherData(data);
       // Parse hourly
       if (data.hourly?.time) {
@@ -189,11 +195,11 @@ export default function WeatherScreen() {
     try { await Share.share({ message: `🌤 Thời tiết ${city}\n🌡 ${Math.round(c.temperature_2m)}°C (cảm giác ${Math.round(c.apparent_temperature)}°C)\n💧 Độ ẩm: ${c.relative_humidity_2m}%\n💨 Gió: ${c.wind_speed_10m} km/h\n${w.desc}\n— Ứng dụng Lịch Vạn Niên Pro` }); } catch {}
   };
 
-  const getDayName = (dateStr) => { const d = new Date(dateStr); return ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][d.getDay()]; };
+  const getDayName = (dateStr) => { try { const d = new Date(dateStr); if (isNaN(d.getTime())) return '--'; return ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][d.getDay()]; } catch (e) { return '--'; } };
   const getLunarInfo = (dateStr) => {
     try { const p = dateStr.split('-'); if (p.length === 3) { const l = amlich.convertSolar2Lunar(parseInt(p[2],10), parseInt(p[1],10), parseInt(p[0],10), 7); return `${l[0]}/${l[1]}`; } } catch (e) {} return '--/--';
   };
-  const isWeekend = (dateStr) => { const d = new Date(dateStr); return { isSat: d.getDay() === 6, isSun: d.getDay() === 0 }; };
+  const isWeekend = (dateStr) => { try { const d = new Date(dateStr); if (isNaN(d.getTime())) return { isSat: false, isSun: false }; return { isSat: d.getDay() === 6, isSun: d.getDay() === 0 }; } catch (e) { return { isSat: false, isSun: false }; } };
 
   const handleDayPress = (dateStr) => {
     Haptics.selectionAsync();
@@ -236,18 +242,33 @@ export default function WeatherScreen() {
     );
   }
 
-  const current = weatherData.current;
-  const daily = weatherData.daily;
+  const current = weatherData?.current;
+  const daily = weatherData?.daily;
   const now = new Date();
   const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')} - ${getDayName(now.toISOString().split('T')[0])}, ${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
   const mPhase = getMoonPhase(now);
-  const isAlert = current.weather_code >= 95;
+  const isAlert = current?.weather_code >= 95;
+
+  // Safety guard — if API data invalid, show error instead of crashing
+  if (!current || !daily) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center' }]}>
+        <LinearGradient colors={['#121214', '#1C1C20']} style={StyleSheet.absoluteFillObject} />
+        <BlurView intensity={60} tint="dark" style={styles.promptBox}>
+          <Ionicons name="cloud-offline-outline" size={60} color={THEME.accentRed} />
+          <Text style={styles.promptTitle}>Dữ liệu không hợp lệ</Text>
+          <TouchableOpacity style={[styles.fetchButton, { backgroundColor: THEME.accentRed }]} onPress={fetchWeather}><Text style={styles.fetchButtonText}>THỬ LẠI</Text></TouchableOpacity>
+          {errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
+        </BlurView>
+      </View>
+    );
+  }
 
   // ─── Detail Grid ───
   const renderDetails = () => (
     <View style={styles.detailGrid}>
-      <View style={styles.detailCard}><Ionicons name="thermometer-outline" size={14} color="#6EE7B7" /><Text style={styles.detailLabel}>Thấp nhất</Text><Text style={styles.detailVal}>{Math.round(daily.temperature_2m_min[0])}°</Text></View>
-      <View style={styles.detailCard}><Ionicons name="flame-outline" size={14} color="#FCA5A5" /><Text style={styles.detailLabel}>Cao nhất</Text><Text style={styles.detailVal}>{Math.round(daily.temperature_2m_max[0])}°</Text></View>
+      <View style={styles.detailCard}><Ionicons name="thermometer-outline" size={14} color="#6EE7B7" /><Text style={styles.detailLabel}>Thấp nhất</Text><Text style={styles.detailVal}>{daily.temperature_2m_min?.[0] != null ? Math.round(daily.temperature_2m_min[0]) + '°' : '--'}</Text></View>
+      <View style={styles.detailCard}><Ionicons name="flame-outline" size={14} color="#FCA5A5" /><Text style={styles.detailLabel}>Cao nhất</Text><Text style={styles.detailVal}>{daily.temperature_2m_max?.[0] != null ? Math.round(daily.temperature_2m_max[0]) + '°' : '--'}</Text></View>
       <View style={styles.detailCard}><Ionicons name="thermometer" size={14} color="#FDE68A" /><Text style={styles.detailLabel}>Cảm giác</Text><Text style={styles.detailVal}>{Math.round(current.apparent_temperature)}°</Text></View>
       <View style={styles.detailCard}><Ionicons name="sunny" size={14} color="#FBBF24" /><Text style={styles.detailLabel}>UV</Text><Text style={styles.detailVal}>{daily.uv_index_max?.[0]?.toFixed(1) || '--'}</Text></View>
       <View style={styles.detailCard}><Ionicons name="speedometer-outline" size={14} color="#93C5FD" /><Text style={styles.detailLabel}>Áp suất</Text><Text style={[styles.detailVal, { fontSize: 12 }]}>{current.pressure_msl ? Math.round(current.pressure_msl) + ' hPa' : '--'}</Text></View>
@@ -310,7 +331,7 @@ export default function WeatherScreen() {
 
   // ─── Hourly Forecast ───
   const renderHourly = () => {
-    if (!hourlyData.length) return null;
+    if (!hourlyData || !hourlyData.length) return null;
     const temps = hourlyData.map(h => h.temp).filter(t => t != null);
     const minT = Math.min(...temps), maxT = Math.max(...temps);
     const range = maxT - minT || 1;
@@ -354,6 +375,7 @@ export default function WeatherScreen() {
 
   // ─── 5-day Forecast ───
   const renderForecast = () => {
+    if (!daily?.time?.length) return null;
     let days = [];
     for (let i = 0; i < 5; i++) {
       if (!daily.time[i]) continue;
