@@ -1129,7 +1129,7 @@ const styles = StyleSheet.create({
   // ─── Ngũ Hành Flow ───
   nhFlow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8, flexWrap: 'wrap' },
   elNodeCircle: { width: 46, height: 46, borderRadius: 23, borderWidth: 2, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 3 },
-  elNodeCanChi: { fontSize: 12, fontWeight: '800' },
+  elNodeCanChi: { fontSize: 11, fontWeight: '800' },
   elNodeLabel: { fontSize: 9, fontWeight: '600', marginTop: 3 },
   relArrowWrap: { alignItems: 'center', marginHorizontal: 4 },
   relArrow: { fontSize: 18, fontWeight: '900' },

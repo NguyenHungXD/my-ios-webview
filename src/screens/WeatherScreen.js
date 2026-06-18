@@ -356,7 +356,7 @@ export default function WeatherScreen() {
           <View style={styles.mainCardContent}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               <Ionicons name="location" size={14} color={THEME.accentGreen} />
-              <Text style={styles.location}>{FIXED_CITY} (DEBUG)</Text>
+              <Text style={styles.location}>{FIXED_CITY}</Text>
               <TouchableOpacity onPress={handleShare} style={{ padding: 4 }}>
                 <Ionicons name="share-outline" size={16} color={THEME.textSub} />
               </TouchableOpacity>
@@ -397,11 +397,6 @@ export default function WeatherScreen() {
           </BlurView>
         </TouchableOpacity>
 
-        {debugLogs.length > 0 && (
-          <View style={{ margin: 15, padding: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8 }}>
-            <Text style={{ color: '#888', fontSize: 10, fontFamily: 'monospace' }}>{debugLogs.join('\n')}</Text>
-          </View>
-        )}
       </ScrollView>
 
       <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
