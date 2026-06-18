@@ -24,6 +24,8 @@ import {
   getMenhDayAdvice, analyzeElementBalance
 } from '../fengshui';
 
+import { tinhQueTheoAmLich, tinhQueTheoJD, gieoQue3DongXu, BAT_QUAI } from '../kinhDich';
+
 const { width: SCREEN_W } = Dimensions.get('window');
 
 const THEME = {
@@ -32,8 +34,8 @@ const THEME = {
   moonColor: '#F39C12',
 };
 
-const TABS = ['TỨ TRỤ', 'THẬP THẦN', 'NGŨ HÀNH', 'CỬU TINH', 'CÔNG VIỆC'];
-const TAB_ICONS = ['git-network', 'sparkles', 'color-palette', 'star', 'briefcase'];
+const TABS = ['TỨ TRỤ', 'THẬP THẦN', 'NGŨ HÀNH', 'CỬU TINH', 'CÔNG VIỆC', 'KINH DỊCH'];
+const TAB_ICONS = ['git-network', 'sparkles', 'color-palette', 'star', 'briefcase', 'book'];
 const SPREADSHEET_ID = '1Od2c46Msy7FraALvf4YWyvRgfHxhfBHpGr0djUQdnq8';
 
 const toDateStr = (date) => {
@@ -734,8 +736,145 @@ export default function CalendarScreen() {
     </View>
   );
 
+  // ─── Tab 5: KINH DỊCH ───
+  const [kinhDichResult, setKinhDichResult] = useState(null);
+  const [kinhDichMethod, setKinhDichMethod] = useState('amlich');
+
+  useEffect(() => {
+    if (detailInfo && selectedDate) {
+      const d = selectedDate.getDate(), m = selectedDate.getMonth() + 1, y = selectedDate.getFullYear();
+      const lunar = lunarCache.getLunar(y, m, d);
+      const jd = lunarCache.getJD(y, m, d);
+      if (kinhDichMethod === 'amlich') setKinhDichResult(tinhQueTheoAmLich(lunar[2], lunar[1], lunar[0]));
+      else if (kinhDichMethod === 'julian') setKinhDichResult(tinhQueTheoJD(jd));
+      else setKinhDichResult(gieoQue3DongXu());
+    }
+  }, [detailInfo, kinhDichMethod, selectedDate]);
+
+  const renderKinhDich = () => {
+    if (!kinhDichResult) return <View style={styles.tabContent}><Text style={{ color: THEME.textSub, textAlign: 'center', padding: 20, fontStyle: 'italic' }}>Chọn ngày để xem quẻ Kinh Dịch.</Text></View>;
+    const q = kinhDichResult;
+    const lineColors = ['#E74C3C', '#E67E22', '#F1C40F', '#2ECC71', '#3498DB', '#9B59B6'];
+
+    return (
+      <View style={styles.tabContent}>
+        {/* Method selector */}
+        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
+          {[
+            { key: 'amlich', label: 'Âm lịch' },
+            { key: 'julian', label: 'Julian' },
+            { key: 'gieo', label: 'Gieo quẻ' }
+          ].map(mt => (
+            <TouchableOpacity key={mt.key} style={[styles.methodBtn, kinhDichMethod === mt.key && styles.methodBtnActive]}
+              onPress={() => { Haptics.selectionAsync(); setKinhDichMethod(mt.key); }}>
+              <Text style={[styles.methodBtnText, kinhDichMethod === mt.key && styles.methodBtnTextActive]}>{mt.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Quẻ chủ */}
+        <View style={styles.ttCard}>
+          <View style={styles.ttHeader}>
+            <Ionicons name="book" size={16} color={THEME.accentGold} />
+            <Text style={[styles.ttLabel, { color: THEME.accentGold }]}>Quẻ Chủ: {q.queChu.nameVN} (số {q.queChu.number})</Text>
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 20, marginBottom: 10 }}>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ fontSize: 24 }}>{q.thuongQuai.image}</Text>
+              <Text style={{ fontSize: 11, color: THEME.textSub }}>{q.thuongQuai.nameVN} (Thượng)</Text>
+            </View>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ fontSize: 24 }}>{q.haQuai.image}</Text>
+              <Text style={{ fontSize: 11, color: THEME.textSub }}>{q.haQuai.nameVN} (Hạ)</Text>
+            </View>
+          </View>
+          {/* Vẽ 6 hào */}
+          <View style={{ alignItems: 'center', gap: 3, marginVertical: 6 }}>
+            {[...Array(6)].map((_, i) => {
+              const haoIdx = 5 - i; // vẽ từ trên xuống
+              const isDong = q.haoDong === haoIdx + 1;
+              const val = q.lines[haoIdx];
+              return (
+                <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ fontSize: 10, color: THEME.textSub, width: 40, textAlign: 'right' }}>Hào {haoIdx + 1}</Text>
+                  <View style={[styles.haoLine, { backgroundColor: isDong ? THEME.accentGold : 'transparent', padding: 2, borderRadius: 4 }]}>
+                    {val === 1 ? (
+                      <View style={{ width: 80, height: 4, backgroundColor: THEME.textLight, borderRadius: 2 }} />
+                    ) : (
+                      <View style={{ flexDirection: 'row', width: 80, gap: 10 }}>
+                        <View style={{ flex: 1, height: 4, backgroundColor: THEME.textLight, borderRadius: 2 }} />
+                        <View style={{ flex: 1, height: 4, backgroundColor: THEME.textLight, borderRadius: 2 }} />
+                      </View>
+                    )}
+                  </View>
+                  {isDong && <Ionicons name="flash" size={12} color={THEME.accentGold} />}
+                </View>
+              );
+            })}
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Text style={{ fontSize: 11, color: THEME.accentGold }}>⚡ Hào động: {q.haoDong}</Text>
+            <Text style={{ fontSize: 11, color: THEME.textSub }}>Phương pháp: {q.method}</Text>
+          </View>
+          {q.queBien && (
+            <View style={{ marginTop: 8, alignItems: 'center' }}>
+              <Text style={{ fontSize: 12, color: THEME.accentRed, fontWeight: '600' }}>
+                Quẻ Biến: {q.queBien.nameVN} (số {q.queBien.number})
+              </Text>
+            </View>
+          )}
+          {q.hoQue && (
+            <View style={{ marginTop: 4, alignItems: 'center' }}>
+              <Text style={{ fontSize: 11, color: THEME.textSub }}>
+                Hỗ Quái: {q.hoQue.nameVN} (số {q.hoQue.number})
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Ý nghĩa */}
+        <View style={styles.kdCard}>
+          <Text style={styles.kdSectionTitle}>Ý NGHĨA</Text>
+          <Text style={styles.kdText}>{q.queChu.meaning}</Text>
+        </View>
+
+        {/* 4 Prediction */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+          {[
+            { icon: 'briefcase', label: 'Sự nghiệp', text: q.queChu.career, color: THEME.accentBlue },
+            { icon: 'heart', label: 'Tình cảm', text: q.queChu.love, color: THEME.accentRed },
+            { icon: 'cash', label: 'Tài chính', text: q.queChu.finance, color: THEME.accentYellow },
+            { icon: 'fitness', label: 'Sức khỏe', text: q.queChu.health, color: THEME.accentGreen },
+          ].map((item, idx) => (
+            <View key={idx} style={[styles.kdPredCard, { borderColor: item.color + '30' }]}>
+              <View style={styles.ttHeader}>
+                <Ionicons name={item.icon} size={14} color={item.color} />
+                <Text style={[styles.ttLabel, { color: item.color, fontSize: 11 }]}>{item.label}</Text>
+              </View>
+              <Text style={[styles.kdText, { fontSize: 12 }]}>{item.text}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Lời khuyên */}
+        <View style={[styles.kdCard, { borderColor: THEME.accentGold + '30' }]}>
+          <Text style={[styles.kdSectionTitle, { color: THEME.accentGold }]}>LỜI KHUYÊN</Text>
+          <Text style={[styles.kdText, { fontStyle: 'italic' }]}>☯ {q.queChu.advice}</Text>
+        </View>
+      </View>
+    );
+  };
+
   const renderActiveTab = () => {
-    switch (activeTab) { case 0: return renderTuTru(); case 1: return renderThapThan(); case 2: return renderNguHanh(); case 3: return renderCuuTinh(); case 4: return renderTasks(); default: return null; }
+    switch (activeTab) {
+      case 0: return renderTuTru();
+      case 1: return renderThapThan();
+      case 2: return renderNguHanh();
+      case 3: return renderCuuTinh();
+      case 4: return renderTasks();
+      case 5: return renderKinhDich();
+      default: return null;
+    }
   };
 
   // ═══════════════════════════════════════
@@ -832,7 +971,7 @@ export default function CalendarScreen() {
                 </View>
               </View>
               {renderTabBar()}
-              <ScrollView style={{ maxHeight: 340 }} showsVerticalScrollIndicator={false}>
+              <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
                 {renderActiveTab()}
               </ScrollView>
             </View>
@@ -1012,6 +1151,17 @@ const styles = StyleSheet.create({
   menhBadgeText: { color: THEME.bg, fontWeight: '900', fontSize: 13, letterSpacing: 1 },
   menhNapAm: { fontSize: 12, color: THEME.textSub, marginTop: 6, fontStyle: 'italic' },
   menhMeaning: { fontSize: 12, color: THEME.textSub, textAlign: 'center', marginTop: 6, lineHeight: 18 },
+
+  // ─── Kinh Dịch ───
+  methodBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, backgroundColor: THEME.card, alignItems: 'center', borderWidth: 1, borderColor: THEME.border },
+  methodBtnActive: { backgroundColor: 'rgba(212,175,55,0.12)', borderColor: THEME.accentGold },
+  methodBtnText: { fontSize: 12, fontWeight: '600', color: THEME.textSub },
+  methodBtnTextActive: { color: THEME.accentGold },
+  haoLine: { padding: 2, borderRadius: 4, marginVertical: 1 },
+  kdCard: { backgroundColor: 'rgba(28,28,32,0.6)', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: THEME.border },
+  kdSectionTitle: { fontSize: 11, fontWeight: '700', color: THEME.accentBlue, marginBottom: 6, letterSpacing: 1 },
+  kdText: { fontSize: 13, color: THEME.textSub, lineHeight: 20 },
+  kdPredCard: { width: '47%', backgroundColor: 'rgba(28,28,32,0.6)', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: THEME.border },
   promptProfileText: { color: THEME.accentGold, textAlign: 'center', fontWeight: '700', fontSize: 13, marginTop: 8 },
 
   // ─── Profile Modal ───
